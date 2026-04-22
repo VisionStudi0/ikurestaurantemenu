@@ -6,7 +6,56 @@
     --font-serif: 'Playfair Display', serif;
     --font-sans: 'Poppins', sans-serif;
 }
+/* ... (manten todo lo anterior igual y solo reemplaza o agrega estas partes) ... */
 
+/* EL CONTENEDOR QUE SE EXPANDE */
+.expand-content { 
+    max-height: 0; 
+    opacity: 0;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dish-item.expanded .expand-content {
+    max-height: 400px; /* Espacio para descripción + ingredientes */
+    opacity: 1;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px dashed #ddd;
+}
+
+.description { 
+    font-size: 0.95rem; 
+    color: var(--text-muted); 
+    margin-bottom: 12px;
+}
+
+/* CAJA DE INGREDIENTES */
+.ingredients-box {
+    background: #fffbef; /* Un tono crema muy sutil */
+    padding: 10px 15px;
+    border-radius: 6px;
+    border-left: 3px solid var(--accent);
+}
+
+.ing-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #b8860b;
+    display: block;
+    margin-bottom: 4px;
+    letter-spacing: 1px;
+}
+
+.ing-list {
+    font-size: 0.85rem;
+    color: #555;
+    font-style: italic;
+    line-height: 1.4;
+}
+
+/* ... (resto del CSS igual) ... */
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 body {
