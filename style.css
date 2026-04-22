@@ -17,7 +17,7 @@ body {
 
 .container { display: flex; flex-direction: row; min-height: 100vh; }
 
-/* HERO SECTION - Imagen Personalizada SFG */
+/* HERO SECTION - Imagen Personalizada IKU */
 .hero { 
     flex: 1; 
     /* Mantenemos el degradado oscuro para que el logo blanco resalte */
