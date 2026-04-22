@@ -23,7 +23,7 @@ body {
 .hero { 
     flex: 1; 
     background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), 
-                url('IKU FONDO.jpg') center/cover no-repeat;
+                url('IKU F.jpg') center/cover no-repeat;
     color: white; padding: 40px; display: flex; flex-direction: column; justify-content: space-between;
     position: sticky; top: 0; height: 100vh; text-align: center;
 }
