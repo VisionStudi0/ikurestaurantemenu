@@ -39,35 +39,41 @@ const escucharPedidos = () => {
             const itemsJson = encodeURIComponent(JSON.stringify(p.items));
             const pJson = encodeURIComponent(JSON.stringify(p));
 
-            // NUEVO: Estados Intermedios e Impresión
             if (p.estado === 'pendiente' || p.estado === 'preparando') {
                 const esPreparando = p.estado === 'preparando';
                 const cardClass = esPreparando ? 'pedido-card preparando' : 'pedido-card';
                 
+                // Botones dinámicos: Si está preparando, muestra opciones de pago para finalizar
                 let btnAccion = esPreparando 
-                    ? `<button style="background:var(--success); color:white; border:none; padding:10px 20px; border-radius:10px; cursor:pointer; font-weight:bold;" onclick="cambiarEstado('${docSnap.id}', 'completado')">✔️ ENTREGAR</button>`
-                    : `<button style="background:#f59e0b; color:white; border:none; padding:10px 20px; border-radius:10px; cursor:pointer; font-weight:bold; margin-right:10px;" onclick="cambiarEstado('${docSnap.id}', 'preparando', '${itemsJson}')">🍳 PREPARAR</button>
-                       <button style="background:#e2e8f0; color:#333; border:none; padding:10px 15px; border-radius:10px; cursor:pointer; font-weight:bold;" onclick="imprimirComanda('${pJson}')">🖨️</button>`;
+                    ? `<div style="display:flex; flex-direction:column; gap:8px;">
+                        <span style="font-size:0.7rem; color:#64748b; font-weight:bold; text-align:center;">FINALIZAR Y COBRAR EN:</span>
+                        <div style="display:flex; gap:5px;">
+                            <button style="background:#818cf8; color:white; border:none; padding:8px; border-radius:8px; cursor:pointer; font-size:0.7rem; font-weight:bold; flex:1;" onclick="finalizarPedido('${docSnap.id}', 'nequi')">🟣 NEQUI</button>
+                            <button style="background:#fbbf24; color:white; border:none; padding:8px; border-radius:8px; cursor:pointer; font-size:0.7rem; font-weight:bold; flex:1;" onclick="finalizarPedido('${docSnap.id}', 'bancolombia')">🟡 BANC.</button>
+                            <button style="background:var(--success); color:white; border:none; padding:8px; border-radius:8px; cursor:pointer; font-size:0.7rem; font-weight:bold; flex:1;" onclick="finalizarPedido('${docSnap.id}', 'efectivo')">💵 EFEC.</button>
+                        </div>
+                       </div>`
+                    : `<div style="display:flex; align-items:center;">
+                        <button style="background:#f59e0b; color:white; border:none; padding:10px 20px; border-radius:10px; cursor:pointer; font-weight:bold; margin-right:10px;" onclick="cambiarEstado('${docSnap.id}', 'preparando', '${itemsJson}')">🍳 PREPARAR</button>
+                        <button style="background:#e2e8f0; color:#333; border:none; padding:10px 15px; border-radius:10px; cursor:pointer; font-weight:bold;" onclick="imprimirComanda('${pJson}')">🖨️</button>
+                       </div>`;
 
                 lp.innerHTML += `
                 <div class="${cardClass}">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <strong>👤 ${p.cliente}</strong>
-                        <div>
-                            <span style="font-size:0.65rem; font-weight:700; padding:4px 10px; border-radius:20px; background:#f1f5f9; color:#64748b; margin-right:5px;">${p.tipo.toUpperCase()}</span>
-                            ${p.metodoPago ? `<span style="font-size:0.65rem; font-weight:700; padding:4px 10px; border-radius:20px; background:#fef3c7; color:#d97706;">${p.metodoPago.toUpperCase()}</span>` : ''}
-                        </div>
+                        <span style="font-size:0.65rem; font-weight:700; padding:4px 10px; border-radius:20px; background:#f1f5f9; color:#64748b;">${p.tipo.toUpperCase()}</span>
                     </div>
                     <div style="margin:15px 0;">${itemsHTML}</div>
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <span style="font-weight:700; color:var(--primary); font-size:1.1rem;">$${Number(p.total).toLocaleString()}</span>
-                        <div>${btnAccion}</div>
+                        ${btnAccion}
                     </div>
                 </div>`;
             } else if (p.estado === 'completado' && p.timestamp?.toDate().toDateString() === hoy) {
                 la.innerHTML += `
                 <div style="display:flex; justify-content:space-between; padding:12px 20px; border-bottom:1px solid #f1f5f9; font-size:0.9rem;">
-                    <span><strong>${p.cliente}</strong> <small style="color:#94a3b8; margin-left:10px;">${p.tipo}</small></span>
+                    <span><strong>${p.cliente}</strong> <small style="color:#94a3b8; margin-left:10px;">${p.tipo} (${p.metodoPago || 'Efectivo'})</small></span>
                     <span style="color:var(--success); font-weight:700;">$${Number(p.total).toLocaleString()}</span>
                 </div>`;
             }
@@ -76,30 +82,27 @@ const escucharPedidos = () => {
     });
 };
 
-// NUEVO: Función para Impresión Térmica
 window.imprimirComanda = (pedidoJson) => {
     const p = JSON.parse(decodeURIComponent(pedidoJson));
     const v = window.open('', '_blank', 'width=300,height=600');
     v.document.write(`
-        <style>body{font-family:monospace; margin:0; padding:10px; font-size:12px;} h3, h4{margin:5px 0;} .item{display:flex;justify-content:space-between; margin-bottom:5px;} .nota{font-size:10px; font-style:italic; font-weight:bold;}</style>
+        <style>body{font-family:monospace; margin:0; padding:10px; font-size:12px;} h3, h4{margin:5px 0;} .item{display:flex;justify-content:space-between; margin-bottom:5px;} .nota{font-size:10px; font-style:italic; font-weight:bold; border-left: 2px solid #000; padding-left: 5px;}</style>
         <div style="text-align:center;"><h3>IKU RESTAURANTE</h3><p>${new Date().toLocaleString()}</p></div>
         <hr>
         <h4>Cliente: ${p.cliente}</h4>
         <h4>Servicio: ${p.tipo.toUpperCase()}</h4>
-        <p>Pago: ${p.metodoPago ? p.metodoPago.toUpperCase() : 'EFECTIVO'}</p>
         <hr>
-        ${p.items.map(i => `<div class="item"><span>1x ${i.nombre}</span></div>${i.nota?`<div class="nota">⚠️ Nota: ${i.nota}</div>`:''}`).join('')}
+        ${p.items.map(i => `<div class="item"><span>1x ${i.nombre}</span></div>${i.nota?`<div class="nota">Nota: ${i.nota}</div>`:''}`).join('')}
         <hr>
         <h3 style="text-align:right;">Total: $${Number(p.total).toLocaleString()}</h3>
         <script>setTimeout(()=>{window.print(); window.close();}, 500);</script>
     `);
 };
 
-// NUEVO: Flujo de cocina y descuento de Stock automático
 window.cambiarEstado = async (id, nuevoEstado, itemsStr) => {
     await updateDoc(doc(db, "pedidos", id), { estado: nuevoEstado });
     
-    // Si la cocina empieza a preparar, descontamos el inventario de esos platos
+    // Descuento de inventario automático al empezar a preparar
     if (nuevoEstado === 'preparando' && itemsStr) {
         const items = JSON.parse(decodeURIComponent(itemsStr));
         for (const i of items) {
@@ -110,15 +113,19 @@ window.cambiarEstado = async (id, nuevoEstado, itemsStr) => {
                     let stockActual = pSnap.data().stock;
                     if (stockActual !== undefined && stockActual > 0) {
                         stockActual--;
-                        await updateDoc(pRef, { 
-                            stock: stockActual, 
-                            disponible: stockActual > 0 // Apaga el switch si llega a 0
-                        });
+                        await updateDoc(pRef, { stock: stockActual, disponible: stockActual > 0 });
                     }
                 }
             }
         }
     }
+};
+
+window.finalizarPedido = async (id, metodoCaja) => {
+    await updateDoc(doc(db, "pedidos", id), { 
+        estado: 'completado',
+        metodoPago: metodoCaja 
+    });
 };
 
 const procesarEstadisticas = (pedidos) => {
@@ -127,7 +134,7 @@ const procesarEstadisticas = (pedidos) => {
     const mesKey = `${ahora.getMonth() + 1}-${ahora.getFullYear()}`;
     
     let totalHoy = 0, totalMes = 0;
-    let tNequi = 0, tBanco = 0, tEfec = 0; // Cierre de caja
+    let tNequi = 0, tBanco = 0, tEfec = 0; 
     const conteoPlatos = {};
     const conteoIngredientes = {};
 
@@ -139,7 +146,6 @@ const procesarEstadisticas = (pedidos) => {
         if (fecha.toDateString() === hoyStr) {
             const valor = Number(p.total);
             totalHoy += valor;
-            // Reporte Z
             if(p.metodoPago === 'nequi') tNequi += valor;
             else if(p.metodoPago === 'bancolombia') tBanco += valor;
             else tEfec += valor;
@@ -210,7 +216,6 @@ const escucharCarta = () => {
             const d = docSnap.data();
             catalogoPlatos[d.nombre] = d; 
 
-            // Mostrar aviso de stock
             let txtStock = `<span style="font-size:0.75rem; color:#94a3b8; font-weight:normal; margin-left:10px;">📦 ${d.stock || 0} disp.</span>`;
             if (d.stock === 0) txtStock = `<span style="font-size:0.75rem; color:var(--danger); font-weight:bold; margin-left:10px;">🛑 AGOTADO</span>`;
 
@@ -238,7 +243,6 @@ const escucharCarta = () => {
             if(el) el.classList.add('open');
         });
         if(gruposAbiertos.length === 0 && document.getElementById('g-diario')) document.getElementById('g-diario').classList.add('open');
-
         setTimeout(() => { document.querySelector('.main-content').scrollTop = scrollActual; }, 0);
     });
 };
@@ -246,19 +250,8 @@ const escucharCarta = () => {
 window.toggleStock = (id, val) => updateDoc(doc(db, "platos", id), { disponible: val });
 
 let currentAction = null; let targetId = null;
-
-window.triggerDelete = (id) => { 
-    currentAction = 'deletePlato'; targetId = id; 
-    document.getElementById('modal-title').innerText = "¿Eliminar este plato de la carta?"; 
-    document.getElementById('delete-modal').style.display = 'flex'; 
-};
-
-window.triggerResetStats = () => { 
-    currentAction = 'resetStats'; 
-    document.getElementById('modal-title').innerText = "⚠️ ¿Borrar TODOS los pedidos y estadísticas?"; 
-    document.getElementById('delete-modal').style.display = 'flex'; 
-};
-
+window.triggerDelete = (id) => { currentAction = 'deletePlato'; targetId = id; document.getElementById('modal-title').innerText = "¿Eliminar plato?"; document.getElementById('delete-modal').style.display = 'flex'; };
+window.triggerResetStats = () => { currentAction = 'resetStats'; document.getElementById('modal-title').innerText = "⚠️ ¿Borrar historial y estadísticas?"; document.getElementById('delete-modal').style.display = 'flex'; };
 window.closeModal = () => { document.getElementById('delete-modal').style.display = 'none'; currentAction = null; targetId = null; };
 
 document.getElementById('confirm-delete-btn').onclick = async () => {
@@ -267,9 +260,9 @@ document.getElementById('confirm-delete-btn').onclick = async () => {
         else if (currentAction === 'resetStats' && auth.currentUser.email === CORREO_MASTER) {
             const q = await getDocs(collection(db, "pedidos")); 
             await Promise.all(q.docs.map(d => deleteDoc(d.ref))); 
-            alert("✅ Todas las estadísticas y pedidos han sido reiniciados.");
+            alert("✅ Cierre de caja realizado.");
         }
-    } catch (error) { console.error(error); }
+    } catch (e) { console.error(e); }
     closeModal();
 };
 
@@ -305,9 +298,7 @@ document.getElementById('m-form').onsubmit = async (e) => {
         ingredientes: document.getElementById('ingredients').value.split(',').map(s => s.trim()),
         timestamp: serverTimestamp()
     };
-    // Si es nuevo y le ponen stock > 0, nace disponible
     if(!id) datos.disponible = stockIngresado > 0;
-    
     id ? await updateDoc(doc(db, "platos", id), datos) : await addDoc(collection(db, "platos"), datos);
     cancelarEdicion();
 };
@@ -316,10 +307,8 @@ onAuthStateChanged(auth, (u) => {
     if(u && correosAutorizados.includes(u.email)) {
         document.getElementById('admin-panel').style.display = 'flex';
         document.getElementById('login-screen').style.display = 'none';
-        
         const btnReset = document.getElementById('btn-reset-stats');
         if(btnReset) btnReset.style.display = (u.email === CORREO_MASTER) ? 'block' : 'none';
-
         escucharPedidos(); escucharCarta();
     } else {
         if(u) signOut(auth);
