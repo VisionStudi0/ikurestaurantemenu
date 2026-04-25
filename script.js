@@ -17,7 +17,24 @@ const mostrarNotificacion = (mensaje) => {
     setTimeout(() => { toastDiv.classList.remove("show"); }, 3000);
 };
 
-// --- 2. CARRITO Y PEDIDOS ---
+// --- 2. ACORDEÓN DE PLATOS (NUEVO) ---
+window.toggleDish = (headerElement) => {
+    const dishItem = headerElement.parentElement;
+    const yaEstabaAbierto = dishItem.classList.contains('expanded');
+
+    // 1. Cerramos absolutamente todos los platos primero
+    document.querySelectorAll('.dish-item').forEach(item => {
+        item.classList.remove('expanded');
+    });
+
+    // 2. Si el que tocamos estaba cerrado, lo abrimos. 
+    // (Si ya estaba abierto, simplemente se cerró en el paso anterior)
+    if (!yaEstabaAbierto) {
+        dishItem.classList.add('expanded');
+    }
+};
+
+// --- 3. CARRITO Y PEDIDOS ---
 window.toggleCart = () => document.getElementById('cart-modal').classList.toggle('open');
 
 window.agregarAlCarrito = (nombre, precio, id) => {
@@ -79,7 +96,7 @@ window.enviarPedido = async () => {
     }
 };
 
-// --- 3. RENDERIZADO DEL MENÚ DESDE FIREBASE ---
+// --- 4. RENDERIZADO DEL MENÚ DESDE FIREBASE ---
 const renderMenu = () => {
     const q = query(collection(db, "platos"), orderBy("timestamp", "desc"));
     
@@ -93,9 +110,10 @@ const renderMenu = () => {
                 style: 'currency', currency: 'COP', minimumFractionDigits: 0
             }).format(d.precio);
 
+            // AQUÍ APLICAMOS LA NUEVA FUNCIÓN 'toggleDish'
             const html = `
                 <div class="dish-item">
-                    <div class="dish-header" onclick="this.parentElement.classList.toggle('expanded')">
+                    <div class="dish-header" onclick="toggleDish(this)">
                         <h3>${d.nombre}</h3> 
                         <strong class="price">${precioFormateado}</strong>
                     </div>
@@ -125,7 +143,7 @@ const renderMenu = () => {
 
 renderMenu();
 
-// --- 4. LÓGICA DE PESTAÑAS (TABS) ---
+// --- 5. LÓGICA DE PESTAÑAS (TABS) ---
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.onclick = () => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
