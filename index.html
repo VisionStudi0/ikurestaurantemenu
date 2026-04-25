@@ -58,25 +58,23 @@
                 <span id="cart-total-price">$0</span>
             </div>
 
-            <div class="order-form">
-                <select id="tipo-servicio" onchange="ajustarPlaceholder()">
-                    <option value="mesa">🍽️ Mesa (Comer aquí)</option>
-                    <option value="domicilio">🛵 Domicilio</option>
-                </select>
-                
-                <input type="text" id="nombre-cliente" placeholder="Nombre y # de Mesa">
+           <div class="order-form">
+    <select id="tipo-servicio" onchange="ajustarPlaceholder()">
+        <option value="mesa">🍽️ Mesa (Comer aquí)</option>
+        <option value="domicilio">🛵 Domicilio</option>
+    </select>
+    
+    <input type="text" id="nombre-cliente" placeholder="Nombre y # de Mesa">
 
-                <select id="metodo-pago">
-                    <option value="efectivo">💵 Pago en Efectivo</option>
-                    <option value="nequi">🟣 Pago por Nequi</option>
-                    <option value="bancolombia">🟡 Pago por Bancolombia</option>
-                </select>
+    <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 12px; text-align: center;">
+        Paga en caja al recibir tu pedido 💵
+    </p>
 
-                <div class="whatsapp-check">
-                    <input type="checkbox" id="check-whatsapp">
-                    <label for="check-whatsapp">Respaldo por WhatsApp</label>
-                </div>
-            </div>
+    <div class="whatsapp-check">
+        <input type="checkbox" id="check-whatsapp">
+        <label for="check-whatsapp">Respaldo por WhatsApp</label>
+    </div>
+</div>
 
             <button class="btn-send-order" onclick="enviarPedido()">
                 CONFIRMAR PEDIDO
