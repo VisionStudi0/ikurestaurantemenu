@@ -30,6 +30,10 @@
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
                 Gestión de Carta
             </div>
+            <div class="nav-item" onclick="cambiarVista('v-mesas', this)">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                Plano de Mesas
+            </div>
             <div class="nav-item" onclick="cambiarVista('v-stats', this)">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                 Métricas
@@ -47,7 +51,7 @@
                 <div style="display: flex; gap: 24px; flex-wrap: wrap;">
                     <div style="flex: 1; min-width: 320px;">
                         <h3 style="margin-bottom: 20px;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                             Pendientes
                         </h3>
                         <div id="l-pendientes"></div>
@@ -113,6 +117,14 @@
                         </div>
                     </div>
                 </div>
+            </section>
+
+            <section id="v-mesas" class="view-section">
+                <h3 style="margin-bottom: 24px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                    Control de Mesas
+                </h3>
+                <div id="grid-mesas" class="mesas-container"></div>
             </section>
 
             <section id="v-stats" class="view-section">
