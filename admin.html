@@ -32,13 +32,14 @@
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 30px; }
         .stat-card { padding: 30px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
         #login-screen { position: fixed; inset: 0; background: var(--sidebar); display: flex; align-items: center; justify-content: center; z-index: 2000; }
-    /* Estilos para el botón de Disponible/Agotado */
-.switch { position: relative; display: inline-block; width: 42px; height: 24px; }
-.switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; inset: 0; background-color: #cbd5e1; border-radius: 34px; transition: .4s; }
-.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: .4s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-.switch input:checked + .slider { background-color: var(--success); }
-.switch input:checked + .slider:before { transform: translateX(18px); }
+        
+        /* Switch CSS */
+        .switch { position: relative; display: inline-block; width: 42px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; inset: 0; background-color: #cbd5e1; border-radius: 34px; transition: .4s; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: .4s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .switch input:checked + .slider { background-color: var(--success); }
+        .switch input:checked + .slider:before { transform: translateX(18px); }
     </style>
 </head>
 <body>
@@ -48,7 +49,7 @@
         <div class="modal-card">
             <h3 id="modal-title">¿Confirmar acción?</h3>
             <div style="display:flex; gap:12px; margin-top:25px;">
-                <button onclick="closeModal()" style="flex:1; padding:12px; border-radius:12px; border:none; background:#f1f5f9; cursor:pointer;">Cancelar</button>
+                <button onclick="closeModal()" style="flex:1; padding:12px; border-radius:12px; border:none; background:#f1f5f9; cursor:pointer; font-weight:600;">Cancelar</button>
                 <button id="confirm-delete-btn" style="flex:1; padding:12px; border-radius:12px; border:none; background:var(--danger); color:white; font-weight:700; cursor:pointer;">Confirmar</button>
             </div>
         </div>
@@ -61,7 +62,7 @@
         </div>
     </div>
 
-  <div id="admin-panel" style="display: none; width: 100vw; height: 100vh;">
+    <div id="admin-panel" style="display: none; width: 100vw; height: 100vh;">
         <aside class="sidebar">
             <h2>IKU</h2>
             <div class="nav-item active" onclick="cambiarVista('v-pedidos', this)">🔔 Pedidos</div>
@@ -72,17 +73,18 @@
         <main class="main-content">
             <section id="v-pedidos" class="view-section active">
                 <div id="l-pendientes"></div>
+                
                 <div style="margin-top:40px;">
-    <div class="admin-group">
-        <div class="admin-group-header" onclick="toggleSeccion(this)">
-            <h4 style="color:#94a3b8; font-size:0.8rem; margin:0;">✅ DESPACHADOS (HOY)</h4>
-            <span style="font-size:0.7rem; color:#94a3b8;">▼</span>
-        </div>
-        <div class="admin-group-content" style="padding: 10px;">
-            <div id="l-atendidos"></div>
-        </div>
-    </div>
-</div>
+                    <div class="admin-group">
+                        <div class="admin-group-header" onclick="toggleSeccion(this)">
+                            <h4 style="color:#94a3b8; font-size:0.8rem; margin:0;">✅ DESPACHADOS (HOY)</h4>
+                            <span style="font-size:0.7rem; color:#94a3b8;">▼</span>
+                        </div>
+                        <div class="admin-group-content" style="padding: 10px;">
+                            <div id="l-atendidos"></div>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <section id="v-menu" class="view-section">
@@ -97,7 +99,7 @@
                         <textarea id="desc" placeholder="Descripción corta..." style="grid-column: span 2; height: 90px;"></textarea>
                         <div style="grid-column: span 2; display:flex; gap:10px;">
                             <button type="submit" class="btn-save" style="flex:2;">GUARDAR</button>
-                            <button type="button" onclick="cancelarEdicion()" style="flex:1; border-radius:12px; border:none; background:#f1f5f9; cursor:pointer;">Cancelar</button>
+                            <button type="button" onclick="cancelarEdicion()" style="flex:1; border-radius:12px; border:none; background:#f1f5f9; cursor:pointer; font-weight:600;">Cancelar</button>
                         </div>
                     </form>
                 </div>
@@ -114,6 +116,10 @@
                     <h4 style="margin-bottom:20px;">🛒 Alerta de Compras (Top Ingredientes)</h4>
                     <div id="rankings-ingredientes" style="display:flex; flex-wrap:wrap; gap:12px;"></div>
                 </div>
+
+                <button id="btn-reset-stats" onclick="triggerResetStats()" style="display:none; width:100%; margin-top:30px; padding:20px; background:#fff0f0; color:var(--danger); border:2px dashed var(--danger); border-radius:16px; font-weight:bold; cursor:pointer; transition:0.3s;">
+                    ⚠️ REINICIAR TODAS LAS ESTADÍSTICAS (Borrar todo el historial)
+                </button>
             </section>
         </main>
     </div>
