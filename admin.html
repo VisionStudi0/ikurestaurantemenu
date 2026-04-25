@@ -64,9 +64,9 @@
 
         /* --- COMPONENTES --- */
         .card { background: var(--white); border-radius: 12px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid var(--border); margin-bottom: 30px; }
-        .card-header { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
+        .card-header { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;}
         
-        /* Formulario */
+        /* Formulario y Grillas */
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .form-group { display: flex; flex-direction: column; gap: 8px; }
         .form-group.full { grid-column: span 2; }
@@ -97,6 +97,12 @@
         .pedido-total { font-weight: 700; color: var(--success); font-size: 1.1rem; }
         .pedido-items { list-style: none; margin-bottom: 20px; font-size: 0.9rem; color: var(--text-light); }
         .pedido-items li { margin-bottom: 5px; padding-bottom: 5px; border-bottom: 1px dashed var(--border); }
+
+        /* Estadísticas */
+        .stat-card { padding: 30px; border-radius: 12px; color: white; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        .stat-card h4 { font-weight: 500; font-size: 1rem; margin-bottom: 10px; opacity: 0.9; }
+        .stat-card h2 { font-size: 2.5rem; font-weight: 700; }
+        .ranking-list { padding-left: 20px; margin-top: 15px; line-height: 1.8; color: var(--text-dark); }
     </style>
 </head>
 <body>
@@ -122,6 +128,9 @@
                 </li>
                 <li class="nav-item" onclick="cambiarVista('vista-menu', this)">
                     <span>🍔</span> Gestión de Menú
+                </li>
+                <li class="nav-item" onclick="cambiarVista('vista-estadisticas', this)">
+                    <span>📊</span> Estadísticas
                 </li>
             </ul>
             <div class="sidebar-footer">
@@ -153,7 +162,7 @@
                 <section id="vista-menu" class="view-section">
                     
                     <div class="card">
-                        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div class="card-header">
                             <h4 id="form-title" style="font-size: 1.1rem; color: var(--sidebar-bg);">Añadir Nuevo Plato</h4>
                             <button type="button" id="close-edit-btn" style="display: none; background: none; border: none; font-size: 1.8rem; cursor: pointer; color: var(--text-light); line-height: 1; transition: 0.2s;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-light)'" onclick="cancelarEdicion()">×</button>
                         </div>
@@ -210,13 +219,50 @@
                     </div>
                 </section>
 
+                <section id="vista-estadisticas" class="view-section">
+                    <div class="form-grid">
+                        <div class="stat-card" style="background: var(--sidebar-bg);">
+                            <h4 style="color: var(--accent);">Ventas de Hoy</h4>
+                            <h2 id="ventas-hoy">$0</h2>
+                        </div>
+                        <div class="stat-card" style="background: var(--info);">
+                            <h4>Ventas del Mes</h4>
+                            <h2 id="ventas-mes">$0</h2>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-top: 30px;">
+                        <div class="card-header">
+                            <h4 style="font-size: 1.1rem; color: var(--sidebar-bg);">Rendimiento de Platos</h4>
+                        </div>
+                        <div class="form-grid">
+                            <div>
+                                <h5 style="color: var(--success); border-bottom: 2px solid var(--success); padding-bottom: 5px;">🔥 Los Más Vendidos</h5>
+                                <ol id="top-platos" class="ranking-list">
+                                    <li style="color: #888; list-style: none;">Calculando datos...</li>
+                                </ol>
+                            </div>
+                            <div>
+                                <h5 style="color: var(--danger); border-bottom: 2px solid var(--danger); padding-bottom: 5px;">❄️ Los Menos Vendidos</h5>
+                                <ul id="bottom-platos" class="ranking-list" style="list-style-type: square;">
+                                    <li style="color: #888; list-style: none;">Calculando datos...</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
             </div>
         </main>
     </div>
 
     <script>
         function cambiarVista(idVista, elementoNav) {
-            const titulos = { 'vista-pedidos': 'Pedidos en Vivo', 'vista-menu': 'Gestión de Menú' };
+            const titulos = { 
+                'vista-pedidos': 'Pedidos en Vivo', 
+                'vista-menu': 'Gestión de Menú',
+                'vista-estadisticas': 'Estadísticas y Ventas'
+            };
             document.getElementById('topbar-title').innerText = titulos[idVista];
             
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
