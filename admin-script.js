@@ -8,48 +8,39 @@ const correosAutorizados = [CORREO_MASTER, "kelly.araujotafur@gmail.com"];
 const ICON_EDIT = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>`;
 const ICON_TRASH = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
 
-let primeraCargaPedidos = true;
-let mapaPlatosGlobal = {}; // Para estadísticas rápidas
+let primeraCarga = true;
+let datosPlatos = {}; // Mapa para obtener ingredientes y categorías rápido
 
-const escucharData = () => {
+const escucharPedidos = () => {
     onSnapshot(query(collection(db, "pedidos"), orderBy("timestamp", "desc")), (sn) => {
         const lp = document.getElementById('l-pendientes');
         const la = document.getElementById('l-atendidos');
-        const allPedidos = [];
+        const listaPedidos = [];
         const hoy = new Date().toDateString();
 
-        // Alerta sonora
-        sn.docChanges().forEach((change) => {
-            if (change.type === "added" && !primeraCargaPedidos) {
-                const pData = change.doc.data();
-                if (pData.estado === 'pendiente') {
+        // Sonido de notificación
+        sn.docChanges().forEach(change => {
+            if (change.type === "added" && !primeraCarga) {
+                if (change.doc.data().estado === 'pendiente') {
                     document.getElementById('notif-sound')?.play().catch(() => {});
                 }
             }
         });
-        primeraCargaPedidos = false;
+        primeraCarga = false;
 
         lp.innerHTML = ''; la.innerHTML = '';
-        
         sn.docs.forEach(docSnap => {
             const p = docSnap.data();
-            allPedidos.push(p);
+            listaPedidos.push(p);
 
-            // Notas y pedidos (Corregido el acceso a i.nota)
             const itemsHTML = p.items.map(i => `
-                <div style="margin-bottom:8px;">
-                    • <strong>${i.nombre}</strong> 
-                    ${i.nota ? `<span class="item-nota">⚠️ NOTA: ${i.nota}</span>` : ''}
-                </div>
+                <div style="margin-bottom:8px;">• <strong>${i.nombre}</strong> ${i.nota ? `<span class="item-nota">⚠️ NOTA: ${i.nota}</span>` : ''}</div>
             `).join('');
 
             if (p.estado === 'pendiente') {
                 lp.innerHTML += `
                 <div class="pedido-card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <strong>👤 ${p.cliente}</strong>
-                        <span style="font-size:0.65rem; font-weight:700; padding:4px 10px; border-radius:20px; background:#f1f5f9; color:#64748b;">${p.tipo.toUpperCase()}</span>
-                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;"><strong>👤 ${p.cliente}</strong><span style="font-size:0.65rem; font-weight:700; padding:4px 10px; border-radius:20px; background:#f1f5f9; color:#64748b;">${p.tipo.toUpperCase()}</span></div>
                     <div style="margin:15px 0;">${itemsHTML}</div>
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <span style="font-weight:700; color:var(--success); font-size:1.1rem;">$${Number(p.total).toLocaleString()}</span>
@@ -64,78 +55,73 @@ const escucharData = () => {
                 </div>`;
             }
         });
-        procesarEstadisticas(allPedidos);
+        actualizarEstadisticas(listaPedidos);
     });
 };
 
-const procesarEstadisticas = (pedidos) => {
+const actualizarEstadisticas = (pedidos) => {
     const ahora = new Date();
-    const mesActual = `${ahora.getMonth() + 1}-${ahora.getFullYear()}`;
     const hoyStr = ahora.toDateString();
+    const mesKey = `${ahora.getMonth() + 1}-${ahora.getFullYear()}`;
     
-    let vHoy = 0, vMes = 0;
-    const conteoGlobal = {};
+    let totalHoy = 0, totalMes = 0;
+    const conteoPlatos = {};
     const conteoIngredientes = {};
 
     pedidos.forEach(p => {
         if (p.estado !== 'completado' || !p.timestamp) return;
-        const f = p.timestamp.toDate();
-        const mKey = `${f.getMonth() + 1}-${f.getFullYear()}`;
+        const fecha = p.timestamp.toDate();
+        const pMesKey = `${fecha.getMonth() + 1}-${fecha.getFullYear()}`;
         
-        if (f.toDateString() === hoyStr) vHoy += Number(p.total);
-        if (mKey === mesActual) {
-            vMes += Number(p.total);
-            
+        if (fecha.toDateString() === hoyStr) totalHoy += Number(p.total);
+        if (pMesKey === mesKey) {
+            totalMes += Number(p.total);
             p.items.forEach(i => {
-                // Ranking Platos
-                if (!conteoGlobal[i.nombre]) {
-                    conteoGlobal[i.nombre] = { cantidad: 0, cat: mapaPlatosGlobal[i.nombre]?.categoria || 'varios' };
-                }
-                conteoGlobal[i.nombre].cantidad++;
+                // Conteo de platos
+                if (!conteoPlatos[i.nombre]) conteoPlatos[i.nombre] = { cant: 0, cat: datosPlatos[i.nombre]?.categoria || 'varios' };
+                conteoPlatos[i.nombre].cant++;
 
-                // Ranking Ingredientes
-                const ings = mapaPlatosGlobal[i.nombre]?.ingredientes || [];
+                // Conteo de ingredientes para compras
+                const ings = datosPlatos[i.nombre]?.ingredientes || [];
                 ings.forEach(ing => {
-                    const n = ing.trim().toUpperCase();
-                    if(n) conteoIngredientes[n] = (conteoIngredientes[n] || 0) + 1;
+                    const nombreIng = ing.trim().toUpperCase();
+                    if(nombreIng) conteoIngredientes[nombreIng] = (conteoIngredientes[nombreIng] || 0) + 1;
                 });
             });
         }
     });
 
-    // Renderizar Ventas
-    const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n);
-    document.getElementById('s-hoy').innerText = fmt(vHoy);
-    document.getElementById('s-mes').innerText = fmt(vMes);
+    document.getElementById('s-hoy').innerText = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(totalHoy);
+    document.getElementById('s-mes').innerText = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(totalMes);
 
-    // Renderizar Tops Categorías
-    const rDiv = document.getElementById('rankings-categoria');
-    if(rDiv) {
+    // Rankings por categoría
+    const rankDiv = document.getElementById('rankings-categoria');
+    if(rankDiv) {
         const tops = { diario: '---', rapida: '---', varios: '---' };
-        const maxC = { diario: 0, rapida: 0, varios: 0 };
-        Object.keys(conteoGlobal).forEach(nom => {
-            const inf = conteoGlobal[nom];
-            if (inf.cantidad > maxC[inf.cat]) { maxC[inf.cat] = inf.cantidad; tops[inf.cat] = nom; }
+        const max = { diario: 0, rapida: 0, varios: 0 };
+        Object.keys(conteoPlatos).forEach(nombre => {
+            const item = conteoPlatos[nombre];
+            if (item.cant > max[item.cat]) { max[item.cat] = item.cant; tops[item.cat] = nombre; }
         });
-        rDiv.innerHTML = `
+        rankDiv.innerHTML = `
             <div style="padding:15px; background:#f8fafc; border-radius:12px; font-size:0.8rem;"><strong>📅 Menú Día</strong><br>${tops.diario}</div>
             <div style="padding:15px; background:#f8fafc; border-radius:12px; font-size:0.8rem;"><strong>🍔 Rápidas</strong><br>${tops.rapida}</div>
             <div style="padding:15px; background:#f8fafc; border-radius:12px; font-size:0.8rem;"><strong>✨ Varios</strong><br>${tops.varios}</div>`;
     }
 
-    // Renderizar Ingredientes
+    // Ranking Ingredientes (Compras)
     const ingDiv = document.getElementById('rankings-ingredientes');
     if(ingDiv) {
-        const topIng = Object.entries(conteoIngredientes).sort((a,b) => b[1]-a[1]).slice(0,8);
+        const topIng = Object.entries(conteoIngredientes).sort((a,b) => b[1] - a[1]).slice(0, 8);
         ingDiv.innerHTML = topIng.map(([name, cant]) => `
             <div style="background:#fff7ed; border:1px solid #fed7aa; color:#c2410c; padding:8px 12px; border-radius:8px; font-size:0.8rem; font-weight:600;">
-                ${name} <span style="margin-left:5px; opacity:0.6;">x${cant}</span>
+                ${name} <span style="margin-left:5px; opacity:0.5;">x${cant}</span>
             </div>
-        `).join('') || 'Sin datos';
+        `).join('') || '<p style="color:#94a3b8; font-size:0.8rem;">Sin datos este mes</p>';
     }
 };
 
-const escucharMenu = () => {
+const escucharCarta = () => {
     onSnapshot(collection(db, "platos"), (sn) => {
         const inv = document.getElementById('inv-list');
         inv.innerHTML = `
@@ -144,11 +130,10 @@ const escucharMenu = () => {
             <div class="admin-group"><div class="admin-group-header" onclick="toggleSeccion(this)"><h4>✨ Varios</h4><span class="chevron">▼</span></div><div class="admin-group-content" id="adm-varios"></div></div>
         `;
         
-        mapaPlatosGlobal = {}; // Reiniciar mapa
-        
+        datosPlatos = {}; // Reiniciar mapa global
         sn.docs.forEach(docSnap => {
             const d = docSnap.data();
-            mapaPlatosGlobal[d.nombre] = d; // Guardar para stats
+            datosPlatos[d.nombre] = d; // Guardar datos para cálculos de stats e ingredientes
 
             const html = `
             <div class="admin-row">
@@ -168,52 +153,48 @@ const escucharMenu = () => {
     });
 };
 
-// Funciones Window (Globales)
+// Globales
 window.completar = (id) => updateDoc(doc(db, "pedidos", id), { estado: 'completado' });
 window.toggleStock = (id, val) => updateDoc(doc(db, "platos", id), { disponible: val });
 
 let currentAction = null; let targetId = null;
 window.triggerDelete = (id) => { currentAction = 'deletePlato'; targetId = id; document.getElementById('modal-title').innerText = "¿Eliminar plato?"; document.getElementById('delete-modal').style.display = 'flex'; };
-window.triggerResetStats = () => { currentAction = 'resetStats'; document.getElementById('modal-title').innerText = "¿Reiniciar Estadísticas?"; document.getElementById('delete-modal').style.display = 'flex'; };
 window.closeModal = () => { document.getElementById('delete-modal').style.display = 'none'; currentAction = null; targetId = null; };
 
 document.getElementById('confirm-delete-btn').onclick = async () => {
-    if (currentAction === 'deletePlato' && targetId) { await deleteDoc(doc(db, "platos", targetId)); } 
-    else if (currentAction === 'resetStats' && auth.currentUser.email === CORREO_MASTER) {
-        const q = await getDocs(collection(db, "pedidos")); const batch = writeBatch(db); q.forEach(d => batch.delete(d.ref)); await batch.commit();
-    }
+    if (currentAction === 'deletePlato' && targetId) await deleteDoc(doc(db, "platos", targetId));
     closeModal();
 };
 
 window.prepararEdicion = async (id) => {
-    const snap = await getDoc(doc(db, "platos", id)); 
+    const snap = await getDoc(doc(db, "platos", id));
     const d = snap.data();
-    document.getElementById('edit-id').value = id; 
+    document.getElementById('edit-id').value = id;
     document.getElementById('name').value = d.nombre;
-    document.getElementById('price').value = d.precio; 
+    document.getElementById('price').value = d.precio;
     document.getElementById('category').value = d.categoria;
-    document.getElementById('desc').value = d.descripcion || ''; 
+    document.getElementById('desc').value = d.descripcion || '';
     document.getElementById('ingredients').value = Array.isArray(d.ingredientes) ? d.ingredientes.join(',') : d.ingredientes || '';
     document.getElementById('f-title').innerText = "✏️ Editando: " + d.nombre;
-    document.getElementById('v-menu').scrollIntoView();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
-window.cancelarEdicion = () => { 
-    document.getElementById('edit-id').value = ""; 
-    document.getElementById('f-title').innerText = "➕ Gestionar Carta"; 
-    document.getElementById('m-form').reset(); 
+window.cancelarEdicion = () => {
+    document.getElementById('edit-id').value = "";
+    document.getElementById('f-title').innerText = "➕ Gestionar Carta";
+    document.getElementById('m-form').reset();
 };
 
 document.getElementById('m-form').onsubmit = async (e) => {
-    e.preventDefault(); 
+    e.preventDefault();
     const id = document.getElementById('edit-id').value;
-    const datos = { 
-        nombre: document.getElementById('name').value, 
-        precio: Number(document.getElementById('price').value), 
-        categoria: document.getElementById('category').value, 
-        descripcion: document.getElementById('desc').value, 
-        ingredientes: document.getElementById('ingredients').value.split(',').map(s => s.trim()), 
-        timestamp: serverTimestamp() 
+    const datos = {
+        nombre: document.getElementById('name').value,
+        precio: Number(document.getElementById('price').value),
+        categoria: document.getElementById('category').value,
+        descripcion: document.getElementById('desc').value,
+        ingredientes: document.getElementById('ingredients').value.split(',').map(s => s.trim()),
+        timestamp: serverTimestamp()
     };
     id ? await updateDoc(doc(db, "platos", id), datos) : await addDoc(collection(db, "platos"), { ...datos, disponible: true });
     cancelarEdicion();
@@ -223,11 +204,11 @@ onAuthStateChanged(auth, (u) => {
     if(u && correosAutorizados.includes(u.email)) {
         document.getElementById('admin-panel').style.display = 'flex';
         document.getElementById('login-screen').style.display = 'none';
-        escucharData(); escucharMenu();
-    } else { 
-        if(u) signOut(auth); 
-        document.getElementById('admin-panel').style.display = 'none'; 
-        document.getElementById('login-screen').style.display = 'flex'; 
+        escucharPedidos(); escucharCarta();
+    } else {
+        if(u) signOut(auth);
+        document.getElementById('admin-panel').style.display = 'none';
+        document.getElementById('login-screen').style.display = 'flex';
     }
 });
 document.getElementById('login-btn').onclick = () => signInWithPopup(auth, new GoogleAuthProvider());
