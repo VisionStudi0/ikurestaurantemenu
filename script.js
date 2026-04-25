@@ -3,8 +3,6 @@ import { collection, addDoc, onSnapshot, doc, query, orderBy, serverTimestamp } 
 
 let carrito = [];
 const ICON_TRASH = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
-
-// NUEVO: Efecto de sonido suave al agregar plato
 const SOUND_ADD = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-hard-pop-click-2364.mp3');
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -32,40 +30,42 @@ window.toggleDish = (header) => {
 window.toggleCart = () => document.getElementById('cart-modal').classList.toggle('open');
 window.cerrarTracker = () => document.getElementById('tracker-modal').classList.remove('open');
 
-// NUEVO: Control para subir/bajar cantidad en el menú
 window.ajustarCant = (id, delta) => {
     const el = document.getElementById(`cant-${id}`);
     if(!el) return;
     let cant = parseInt(el.innerText) + delta;
-    if(cant < 1) cant = 1; // Mínimo 1 plato
+    if(cant < 1) cant = 1; 
     el.innerText = cant;
 };
 
 window.agregarAlCarrito = (nombre, precio, id) => {
-    // Obtenemos la cantidad que eligió el cliente
     const qtySpan = document.getElementById(`cant-${id}`);
     const cantidad = qtySpan ? parseInt(qtySpan.innerText) : 1;
     
-    // Verificamos si ya está en el carrito
-    const existeIndex = carrito.findIndex(i => i.nombre === nombre);
+    // Capturamos los ingredientes que el cliente tachó visualmente
+    const excluidos = Array.from(document.querySelectorAll(`#dish-${id} .ing-pill.excluido`)).map(el => el.innerText);
+    
+    // Verificamos si ya existe el MISMO plato con las MISMAS exclusiones
+    const existeIndex = carrito.findIndex(i => i.nombre === nombre && JSON.stringify(i.excluidos) === JSON.stringify(excluidos));
+    
     if(existeIndex !== -1) {
-        carrito[existeIndex].cantidad += cantidad; // Suma si ya existe
+        carrito[existeIndex].cantidad += cantidad; 
     } else {
-        carrito.push({ nombre, precio: Number(precio), cantidad: cantidad, nota: "", id });
+        carrito.push({ nombre, precio: Number(precio), cantidad: cantidad, nota: "", id, excluidos });
     }
     
-    // Reiniciamos el contador visual del menú
     if(qtySpan) qtySpan.innerText = "1"; 
     
-    // 🔊 Reproducir sonido
+    // Reiniciamos las pastillas tachadas para el próximo pedido del mismo plato
+    document.querySelectorAll(`#dish-${id} .ing-pill.excluido`).forEach(el => el.classList.remove('excluido'));
+    
     SOUND_ADD.currentTime = 0;
     SOUND_ADD.play().catch(e => console.log('Audio no soportado:', e));
 
-    // 📳 Animar carrito flotante
     const cartFab = document.querySelector('.cart-fab');
     if (cartFab) {
         cartFab.classList.remove('cart-bounce');
-        void cartFab.offsetWidth; // Truco para reiniciar la animación
+        void cartFab.offsetWidth; 
         cartFab.classList.add('cart-bounce');
     }
     
@@ -81,7 +81,6 @@ function actualizarCarrito() {
     const priceEl = document.getElementById('cart-total-price');
     const countEl = document.getElementById('cart-count');
     
-    // Contamos total real (incluyendo las multiplicaciones de cantidad)
     const totalItems = carrito.reduce((acc, item) => acc + item.cantidad, 0);
     if(countEl) countEl.innerText = totalItems;
     
@@ -91,10 +90,18 @@ function actualizarCarrito() {
     
     carrito.forEach((item, i) => {
         total += (item.precio * item.cantidad);
+        
+        const excluidosStr = item.excluidos && item.excluidos.length > 0 
+            ? `<div style="color:#ef4444; font-size:0.75rem; font-weight:600; margin-top:4px;">❌ Sin: ${item.excluidos.join(', ')}</div>` 
+            : '';
+
         cont.innerHTML += `
         <div class="cart-item-row" style="flex-direction:column; align-items:stretch; gap:8px;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <strong style="font-size:1.05rem;">${item.cantidad}x ${item.nombre}</strong>
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div>
+                    <strong style="font-size:1.05rem;">${item.cantidad}x ${item.nombre}</strong>
+                    ${excluidosStr}
+                </div>
                 <div style="display:flex; align-items:center; gap:12px;">
                     <span style="color:#22c55e; font-weight:700;">$${(item.precio * item.cantidad).toLocaleString()}</span>
                     <button onclick="quitar(${i})" class="btn-remove-item" title="Eliminar plato">${ICON_TRASH}</button>
@@ -123,16 +130,14 @@ window.enviarPedido = async () => {
 
     const total = carrito.reduce((s, x) => s + (x.precio * x.cantidad), 0);
     
-    // Lógica para que las estadísticas del Panel de Administrador sigan exactas
     let itemsParaEnviar = [];
     carrito.forEach(item => {
-        // Desglosamos los platos múltiples en líneas independientes (Para el Administrador)
         for(let k = 0; k < item.cantidad; k++) {
             itemsParaEnviar.push({
                 nombre: item.nombre,
-                precio: item.precio, // Precio individual, el backend lo suma correctamente
-                // Asignamos la nota de grupo solo a la primera línea para que el chef lo lea una vez
-                nota: k === 0 ? item.nota : "" 
+                precio: item.precio,
+                nota: k === 0 ? item.nota : "", 
+                excluidos: item.excluidos || [] // Pasamos la data pura al administrador
             });
         }
     });
@@ -189,7 +194,6 @@ window.iniciarTracker = (id) => {
     });
 };
 
-// --- Renderizado de Menú Frontend ---
 const sDiario = document.getElementById('diario');
 const sRapida = document.getElementById('rapida');
 const sVarios = document.getElementById('varios');
@@ -205,15 +209,18 @@ onSnapshot(collection(db, "platos"), (snapshot) => {
 
         let ingredientesHTML = '';
         if (d.ingredientes && d.ingredientes.length > 0) {
-            ingredientesHTML = `<div class="ing-container">
-                ${d.ingredientes.map(i => `<span class="ing-pill">${i}</span>`).join('')}
-            </div>`;
+            // El stopPropagation() evita que al tocar el ingrediente se cierre el menú del plato entero
+            ingredientesHTML = `
+            <div class="ing-container">
+                ${d.ingredientes.map(i => `<span class="ing-pill" onclick="event.stopPropagation(); this.classList.toggle('excluido')" title="Toca para quitar">${i}</span>`).join('')}
+            </div>
+            <div style="font-size:0.7rem; color:var(--danger); margin-top:2px; font-weight:500;">* Toca un ingrediente para quitarlo de tu plato</div>`;
         }
 
         const html = `
-        <div class="dish-item">
+        <div class="dish-item" id="dish-${docSnap.id}">
             <div class="dish-header" onclick="toggleDish(this)">
-                <div>
+                <div style="flex:1; padding-right:10px;">
                     <h3>${d.nombre}</h3>
                     <p>${d.descripcion || ''}</p>
                     ${ingredientesHTML}
