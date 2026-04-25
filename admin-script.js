@@ -5,6 +5,9 @@ import { GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from
 const CORREO_MASTER = "cb01grupo@gmail.com";
 const correosAutorizados = [CORREO_MASTER, "kelly.araujotafur@gmail.com"];
 
+const ICON_EDIT = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+const ICON_TRASH = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
+
 const loginBtn = document.getElementById('login-btn');
 const logoutBtn = document.getElementById('logout-btn');
 
@@ -66,7 +69,7 @@ function escucharPedidos() {
                 }
             });
 
-            // Tarjeta de Pedido Original
+            // Tarjeta de Pedido
             const card = document.createElement('div');
             card.className = `pedido-card ${p.estado}`;
             card.innerHTML = `
@@ -81,12 +84,12 @@ function escucharPedidos() {
                     ${p.items.map(i => `<div style="font-size:0.9rem; margin-bottom:4px;">• 1x ${i.nombre} ${i.nota ? `<span style="color:#eab308; font-size:0.8rem;">(${i.nota})</span>` : ''}</div>`).join('')}
                 </div>
                 <div style="display:flex; gap:10px;">
-                    <select onchange="actualizarEstado('${p.id}', this.value)" style="flex:1; margin:0;">
+                    <select onchange="actualizarEstado('${p.id}', this.value)" style="flex:1; margin:0; padding:8px; border-radius:6px;">
                         <option value="pendiente" ${p.estado === 'pendiente' ? 'selected' : ''}>⏳ Pendiente</option>
                         <option value="preparando" ${p.estado === 'preparando' ? 'selected' : ''}>🍳 Preparando</option>
                         <option value="listo" ${p.estado === 'listo' ? 'selected' : ''}>✅ Entregado</option>
                     </select>
-                    <select onchange="actualizarPago('${p.id}', this.value)" style="flex:1; margin:0;">
+                    <select onchange="actualizarPago('${p.id}', this.value)" style="flex:1; margin:0; padding:8px; border-radius:6px;">
                         <option value="" disabled ${!p.metodoPago ? 'selected' : ''}>Pago...</option>
                         <option value="nequi" ${p.metodoPago === 'nequi' ? 'selected' : ''}>Nequi</option>
                         <option value="banco" ${p.metodoPago === 'banco' ? 'selected' : ''}>Banco</option>
@@ -100,19 +103,22 @@ function escucharPedidos() {
         });
 
         // Actualizar Métricas
-        document.getElementById('s-hoy').innerText = `$${tHoy.toLocaleString()}`;
-        document.getElementById('s-mes').innerText = `$${tMes.toLocaleString()}`;
-        document.getElementById('s-nequi').innerText = `$${tNequi.toLocaleString()}`;
-        document.getElementById('s-bancolombia').innerText = `$${tBanco.toLocaleString()}`;
-        document.getElementById('s-efectivo').innerText = `$${tEfectivo.toLocaleString()}`;
+        if(document.getElementById('s-hoy')) document.getElementById('s-hoy').innerText = `$${tHoy.toLocaleString()}`;
+        if(document.getElementById('s-mes')) document.getElementById('s-mes').innerText = `$${tMes.toLocaleString()}`;
+        if(document.getElementById('s-nequi')) document.getElementById('s-nequi').innerText = `$${tNequi.toLocaleString()}`;
+        if(document.getElementById('s-bancolombia')) document.getElementById('s-bancolombia').innerText = `$${tBanco.toLocaleString()}`;
+        if(document.getElementById('s-efectivo')) document.getElementById('s-efectivo').innerText = `$${tEfectivo.toLocaleString()}`;
 
-        document.getElementById('rankings-categoria').innerHTML = Object.entries(ventasPlatos)
-            .sort((a,b) => b[1] - a[1]).slice(0,5)
-            .map(([n,v]) => `<div style="padding:10px; background:#f9fafb; border-radius:8px; border:1px solid #eee; display:flex; justify-content:space-between;"><span>${n}</span> <strong>${v}</strong></div>`).join('');
-            
-        document.getElementById('rankings-ingredientes').innerHTML = Object.entries(usoIngredientes)
-            .sort((a,b) => b[1] - a[1])
-            .map(([n,v]) => `<span style="background:var(--sidebar); color:white; padding:4px 10px; border-radius:20px; font-size:0.8rem;">${n} (${v})</span>`).join('');
+        if(document.getElementById('rankings-categoria')) {
+            document.getElementById('rankings-categoria').innerHTML = Object.entries(ventasPlatos)
+                .sort((a,b) => b[1] - a[1]).slice(0,5)
+                .map(([n,v]) => `<div style="padding:10px; background:#f9fafb; border-radius:8px; border:1px solid #eee; display:flex; justify-content:space-between;"><span>${n}</span> <strong>${v}</strong></div>`).join('');
+        }
+        if(document.getElementById('rankings-ingredientes')) {
+            document.getElementById('rankings-ingredientes').innerHTML = Object.entries(usoIngredientes)
+                .sort((a,b) => b[1] - a[1])
+                .map(([n,v]) => `<span style="background:var(--sidebar); color:white; padding:4px 10px; border-radius:20px; font-size:0.8rem;">${n} (${v})</span>`).join('');
+        }
 
         renderizarPlanoMesas(pedidos);
     });
@@ -120,26 +126,76 @@ function escucharPedidos() {
 
 window.actualizarEstado = async (id, estado) => await updateDoc(doc(db, "pedidos", id), { estado });
 window.actualizarPago = async (id, metodoPago) => await updateDoc(doc(db, "pedidos", id), { metodoPago });
+window.toggleDisponibilidad = async (id, disp) => await updateDoc(doc(db, "platos", id), { disponible: disp });
 
-// --- LÓGICA DE CARTA ---
+
+// --- LÓGICA DE CARTA AGRUPADA ---
 function escucharCarta() {
     onSnapshot(collection(db, "platos"), (snap) => {
         const list = document.getElementById('inv-list');
         list.innerHTML = '';
+        
+        // Creamos la estructura de categorías
+        const categorias = {
+            diario: { titulo: "Menú del Día", platos: [] },
+            rapida: { titulo: "Comidas Rápidas", platos: [] },
+            varios: { titulo: "Varios", platos: [] },
+            otros: { titulo: "Otros", platos: [] }
+        };
+
+        // Llenamos las categorías
         snap.forEach(d => {
             const item = d.data();
-            list.innerHTML += `
-            <div style="background:white; padding:15px; margin-bottom:10px; border-radius:8px; border:1px solid #ddd; display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <strong>${item.nombre}</strong> <span style="color:var(--text-muted); font-size:0.9rem;">- $${item.precio}</span><br>
-                    <span style="font-size:0.8rem; background:#f1f5f9; padding:2px 6px; border-radius:4px;">${item.categoria.toUpperCase()}</span>
+            item.id = d.id;
+            if (categorias[item.categoria]) {
+                categorias[item.categoria].platos.push(item);
+            } else {
+                categorias['otros'].platos.push(item);
+            }
+        });
+
+        // Pintamos el HTML
+        let htmlFinal = '';
+        for (const key in categorias) {
+            const cat = categorias[key];
+            if (cat.platos.length === 0) continue; // Si no hay platos, no dibuja la categoría
+
+            let platosHtml = '';
+            cat.platos.forEach(item => {
+                const ingTexto = (item.ingredientes || []).join(', ');
+                
+                platosHtml += `
+                <div style="background:white; padding:15px; margin-bottom:10px; border-radius:8px; border:1px solid #ddd; display:flex; justify-content:space-between; align-items:center;">
+                    <div style="flex:1;">
+                        <strong style="font-size:1.05rem;">${item.nombre}</strong> <span style="color:var(--text-muted); font-size:0.95rem;">- $${Number(item.precio).toLocaleString()}</span><br>
+                        ${item.descripcion ? `<span style="font-size:0.85rem; color:#6b7280; display:block; margin-top:4px;">${item.descripcion}</span>` : ''}
+                        ${item.ingredientes && item.ingredientes.length > 0 ? `<div style="margin-top:6px;">${item.ingredientes.map(i => `<span style="background:#f1f5f9; padding:3px 8px; border-radius:6px; font-size:0.75rem; margin-right:4px;">${i}</span>`).join('')}</div>` : ''}
+                    </div>
+                    <div style="display:flex; gap:16px; align-items:center;">
+                        <label class="switch">
+                            <input type="checkbox" ${item.disponible !== false ? 'checked' : ''} onchange="toggleDisponibilidad('${item.id}', this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                        <button onclick="editarPlato('${item.id}', '${item.nombre}', '${item.precio}', '${item.categoria}', '${item.descripcion || ''}', '${ingTexto}')" style="color:#3b82f6; border:none; background:none; cursor:pointer;" title="Editar">${ICON_EDIT}</button>
+                        <button onclick="eliminarPlato('${item.id}')" style="color:var(--danger); border:none; background:none; cursor:pointer;" title="Eliminar">${ICON_TRASH}</button>
+                    </div>
+                </div>`;
+            });
+
+            // Ensamblamos el grupo colapsable
+            htmlFinal += `
+            <div class="admin-group" style="margin-bottom: 15px;">
+                <div class="admin-group-header" onclick="toggleCategoria('cat-${key}', 'chev-${key}')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: white; padding: 14px 16px; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                    <strong style="color: var(--sidebar); font-size: 1rem;">${cat.titulo} <span style="color:var(--text-muted); font-size:0.85rem; font-weight:normal;">(${cat.platos.length} platos)</span></strong>
+                    <svg id="chev-${key}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transition: transform 0.3s; transform: rotate(0deg);"><polyline points="6 9 12 15 18 9"/></svg>
                 </div>
-                <div style="display:flex; gap:10px;">
-                    <button onclick="editarPlato('${d.id}', '${item.nombre}', '${item.precio}', '${item.categoria}', '${item.descripcion || ''}', '${(item.ingredientes||[]).join(', ')}')" style="color:#3b82f6; border:none; background:none; cursor:pointer;">Editar</button>
-                    <button onclick="eliminarPlato('${d.id}')" style="color:red; border:none; background:none; cursor:pointer;">Borrar</button>
+                <div id="cat-${key}" class="lista-categoria-oculta" style="margin-top: 12px; padding: 0 4px;">
+                    ${platosHtml}
                 </div>
             </div>`;
-        });
+        }
+
+        list.innerHTML = htmlFinal;
     });
 }
 
@@ -174,9 +230,12 @@ document.getElementById('m-form').onsubmit = async (e) => {
         ingredientes: document.getElementById('ingredients').value.split(',').map(s => s.trim()).filter(s => s !== ''),
         timestamp: serverTimestamp()
     };
+    if(!id) datos.disponible = true;
+    
     id ? await updateDoc(doc(db, "platos", id), datos) : await addDoc(collection(db, "platos"), datos);
     window.cancelarEdicion();
 };
+
 
 // --- MESAS E IMPRESIÓN ---
 window.renderizarPlanoMesas = function(pedidos) {
