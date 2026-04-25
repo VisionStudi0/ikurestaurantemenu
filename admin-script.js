@@ -1,4 +1,4 @@
-import { db, auth } from './firebase-config.js';
+ import { db, auth } from './firebase-config.js';
 import { collection, onSnapshot, query, orderBy, doc, deleteDoc, updateDoc, getDoc, getDocs, serverTimestamp, writeBatch, addDoc } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
 import { GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
 
@@ -118,14 +118,9 @@ const procesarEstadisticas = (pedidos) => {
 
 const escucharCarta = () => {
     onSnapshot(collection(db, "platos"), (sn) => {
-        // --- INICIO CORRECCIÓN DE FUNCIONALIDAD ---
-        // 1. Guardamos qué grupos estaban abiertos (usando su ID)
         const gruposAbiertos = [];
         document.querySelectorAll('.admin-group.open').forEach(g => gruposAbiertos.push(g.id));
-        
-        // 2. Guardamos la posición exacta del scroll
         const scrollActual = document.querySelector('.main-content').scrollTop;
-        // --- FIN CORRECCIÓN ---
 
         const inv = document.getElementById('inv-list');
         inv.innerHTML = `
@@ -143,9 +138,9 @@ const escucharCarta = () => {
             <div class="admin-row">
                 <div style="display:flex; flex-direction:column;"><strong>${d.nombre}</strong><span style="font-size:0.8rem; color:var(--success); font-weight:700;">$${Number(d.precio).toLocaleString()}</span></div>
                 <div class="actions">
-                    <label class="switch" style="position:relative;display:inline-block;width:42px;height:22px;">
-                        <input type="checkbox" ${d.disponible !== false ? 'checked' : ''} onchange="toggleStock('${docSnap.id}', this.checked)" style="opacity:0;width:0;height:0;">
-                        <span style="position:absolute;cursor:pointer;inset:0;background:#cbd5e1;border-radius:34px;transition:.4s;" class="slider"></span>
+                    <label class="switch">
+                        <input type="checkbox" ${d.disponible !== false ? 'checked' : ''} onchange="toggleStock('${docSnap.id}', this.checked)">
+                        <span class="slider"></span>
                     </label>
                     <button onclick="prepararEdicion('${docSnap.id}')" class="btn-icon">${ICON_EDIT}</button>
                     <button onclick="triggerDelete('${docSnap.id}')" class="btn-icon" style="color:var(--danger);">${ICON_TRASH}</button>
@@ -155,19 +150,15 @@ const escucharCarta = () => {
             if(target) target.innerHTML += html;
         });
 
-        // --- RESTAURAR ESTADO ---
-        // 3. Volvemos a abrir los grupos que estaban abiertos
         gruposAbiertos.forEach(id => {
             const el = document.getElementById(id);
             if(el) el.classList.add('open');
         });
         
-        // Si es la primera vez que carga, abrimos el menú del día por defecto
         if(gruposAbiertos.length === 0 && document.getElementById('g-diario')) {
             document.getElementById('g-diario').classList.add('open');
         }
 
-        // 4. Devolvemos el scroll a su posición original
         setTimeout(() => {
             document.querySelector('.main-content').scrollTop = scrollActual;
         }, 0);
@@ -197,7 +188,6 @@ window.prepararEdicion = async (id) => {
     document.getElementById('ingredients').value = Array.isArray(d.ingredientes) ? d.ingredientes.join(',') : d.ingredientes || '';
     document.getElementById('f-title').innerText = "✏️ Editando: " + d.nombre;
     
-    // Al editar SI queremos que suba un poco para ver el formulario
     document.querySelector('.main-content').scrollTo({ top: 0, behavior: 'smooth' });
 };
 
