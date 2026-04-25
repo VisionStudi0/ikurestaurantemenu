@@ -11,6 +11,7 @@ const ICON_USER = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" s
 
 let primeraCarga = true;
 let catalogoPlatos = {}; 
+let listaPedidosGlobal = []; // Se agregó esta variable para guardar los pedidos y sincronizarlos con la carta
 
 const escucharPedidos = () => {
     onSnapshot(query(collection(db, "pedidos"), orderBy("timestamp", "asc")), (sn) => {
@@ -103,7 +104,9 @@ const escucharPedidos = () => {
                 </div>`;
             }
         });
-        procesarEstadisticas(listaPedidos);
+        
+        listaPedidosGlobal = listaPedidos;
+        procesarEstadisticas(listaPedidosGlobal);
     });
 };
 
@@ -251,6 +254,11 @@ const escucharCarta = () => {
             const target = document.getElementById(`adm-${d.categoria}`);
             if(target) target.innerHTML += html;
         });
+
+        // Aseguramos que se actualicen las estadísticas de ingredientes si la carta cargó después que los pedidos
+        if (listaPedidosGlobal.length > 0) {
+            procesarEstadisticas(listaPedidosGlobal);
+        }
 
         gruposAbiertos.forEach(id => {
             const el = document.getElementById(id);
