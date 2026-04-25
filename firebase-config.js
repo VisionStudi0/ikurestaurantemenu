@@ -1,11 +1,7 @@
-/* =========================================
-   CONEXIÓN CENTRAL IKU - PUEBLO BELLO
-   ========================================= */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
 
-// Tus datos reales de IKU
 const firebaseConfig = {
   apiKey: "AIzaSyCTAiCQ7hi-ZmBt2MYWzciELL-lB_SsE3A",
   authDomain: "iku-menu-interactivo.firebaseapp.com",
@@ -16,9 +12,6 @@ const firebaseConfig = {
   measurementId: "G-KZZ81XXY8V"
 };
 
-// Inicializamos los servicios
 const app = initializeApp(firebaseConfig);
-
-// Exportamos las herramientas para que script.js y admin-script.js las usen
 export const db = getFirestore(app);
 export const auth = getAuth(app);
