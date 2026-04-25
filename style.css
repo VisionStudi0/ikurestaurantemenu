@@ -44,6 +44,25 @@ body { font-family: var(--font-sans); background-color: var(--bg-light); color: 
 .ing-pill:active { transform: scale(0.9); }
 .ing-pill.excluido { background: #fee2e2; color: #ef4444; text-decoration: line-through; border-color: #fca5a5; }
 
+/* NUEVO: Etiqueta y Animación para instrucción de quitar ingredientes */
+@keyframes pulse-soft {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+    70% { transform: scale(1.05); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+.ing-instruction {
+    font-size: 0.7rem;
+    color: var(--danger);
+    background: #fee2e2;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 700;
+    text-transform: uppercase;
+    animation: pulse-soft 2s infinite;
+    user-select: none;
+    display: inline-block;
+}
+
 .qty-wrapper { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #f8fafc; padding: 10px 15px; border-radius: 12px; border: 1px solid #e2e8f0; }
 .qty-label { font-size: 0.9rem; color: var(--text-muted); font-weight: 600; }
 .qty-control { display: flex; align-items: center; gap: 15px; }
