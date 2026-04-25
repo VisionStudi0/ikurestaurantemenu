@@ -1,11 +1,11 @@
 import { db, auth } from './firebase-config.js';
-import { collection, onSnapshot, query, orderBy, doc, deleteDoc, updateDoc, addDoc, getDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
+import { collection, onSnapshot, query, orderBy, doc, deleteDoc, updateDoc, addDoc, getDoc, getDocs, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
 import { GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
 
-const correos = ["cb01grupo@gmail.com", "kelly.araujotafur@gmail.com"];
+const CORREO_MASTER = "cb01grupo@gmail.com";
+const correosAutorizados = [CORREO_MASTER, "kelly.araujotafur@gmail.com"];
 let totalPAnterior = 0;
 
-// Iconos SVG minimalistas
 const ICON_EDIT = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>`;
 const ICON_TRASH = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
 
@@ -30,10 +30,8 @@ const procesarEstadisticas = async (pedidos) => {
         const mKey = `${f.getMonth() + 1}-${f.getFullYear()}`;
         if (f.toDateString() === hoyStr) vHoy += p.total;
         if (mKey === mesActual) vMes += p.total;
-
         if (!historialMeses[mKey]) historialMeses[mKey] = { total: 0, platos: {} };
         historialMeses[mKey].total += p.total;
-
         p.items.forEach(i => {
             historialMeses[mKey].platos[i.nombre] = (historialMeses[mKey].platos[i.nombre] || 0) + 1;
             if (mKey === mesActual) {
@@ -47,14 +45,14 @@ const procesarEstadisticas = async (pedidos) => {
     document.getElementById('s-hoy').innerText = fmt(vHoy);
     document.getElementById('s-mes').innerText = fmt(vMes);
 
-    const rankingsDiv = document.getElementById('rankings-categoria');
-    if(rankingsDiv) {
+    const rDiv = document.getElementById('rankings-categoria');
+    if(rDiv) {
         const tops = { diario: { n: '---', c: 0 }, rapida: { n: '---', c: 0 }, varios: { n: '---', c: 0 } };
         Object.keys(conteoGlobal).forEach(nom => {
             const inf = conteoGlobal[nom];
             if (inf.cantidad > tops[inf.cat].c) tops[inf.cat] = { n: nom, c: inf.cantidad };
         });
-        rankingsDiv.innerHTML = `
+        rDiv.innerHTML = `
             <div style="padding:15px; background:#f8fafc; border-radius:12px; font-size:0.8rem;"><strong>📅 Menú Día</strong><br>${tops.diario.n}</div>
             <div style="padding:15px; background:#f8fafc; border-radius:12px; font-size:0.8rem;"><strong>🍔 Rápidas</strong><br>${tops.rapida.n}</div>
             <div style="padding:15px; background:#f8fafc; border-radius:12px; font-size:0.8rem;"><strong>✨ Varios</strong><br>${tops.varios.n}</div>`;
@@ -84,7 +82,6 @@ const escucharData = () => {
             const p = docSnap.data();
             allPedidos.push(p);
 
-            // ITEMS CON SUS NOTAS
             const itemsHTML = p.items.map(i => `
                 <div style="margin-bottom:4px;">
                     • ${i.nombre} ${i.nota ? `<span class="item-nota">Nota: ${i.nota}</span>` : ''}
@@ -95,7 +92,7 @@ const escucharData = () => {
                 pCount++;
                 lp.innerHTML += `
                 <div class="pedido-card">
-                    <div class="pedido-header"><strong>👤 ${p.cliente}</strong><span class="badge-tipo">${p.tipo.toUpperCase()}</span></div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;"><strong>👤 ${p.cliente}</strong><span style="font-size:0.65rem; font-weight:700; padding:4px 10px; border-radius:20px; background:#f1f5f9; color:#64748b;">${p.tipo.toUpperCase()}</span></div>
                     <div style="font-size:0.9rem; margin:10px 0;">${itemsHTML}</div>
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <span style="font-weight:bold; color:var(--success);">$${Number(p.total).toLocaleString()}</span>
@@ -104,7 +101,7 @@ const escucharData = () => {
                 </div>`;
             } else if (p.estado === 'completado' && p.timestamp?.toDate().toDateString() === hoy) {
                 la.innerHTML += `
-                <div class="admin-row" style="border:none; border-bottom:1px solid #f1f5f9;">
+                <div style="display:flex; justify-content:space-between; padding:12px 20px; border-bottom:1px solid #f1f5f9; font-size:0.9rem;">
                     <span><strong>${p.cliente}</strong> <small style="color:#94a3b8; margin-left:10px;">${p.tipo}</small></span>
                     <span style="color:var(--success); font-weight:600;">$${Number(p.total).toLocaleString()}</span>
                 </div>`;
@@ -120,14 +117,14 @@ const escucharMenu = () => {
     onSnapshot(collection(db, "platos"), (sn) => {
         const inv = document.getElementById('inv-list');
         inv.innerHTML = `
-            <div class="admin-group" id="g-diario"><div class="admin-group-header" onclick="toggleSeccion(this)"><h4>📅 Menú del Día</h4><span class="chevron">▼</span></div><div class="admin-group-content" id="adm-diario"></div></div>
+            <div class="admin-group open" id="g-diario"><div class="admin-group-header" onclick="toggleSeccion(this)"><h4>📅 Menú del Día</h4><span class="chevron">▼</span></div><div class="admin-group-content" id="adm-diario"></div></div>
             <div class="admin-group" id="g-rapida"><div class="admin-group-header" onclick="toggleSeccion(this)"><h4>🍔 Comidas Rápidas</h4><span class="chevron">▼</span></div><div class="admin-group-content" id="adm-rapida"></div></div>
             <div class="admin-group" id="g-varios"><div class="admin-group-header" onclick="toggleSeccion(this)"><h4>✨ Varios</h4><span class="chevron">▼</span></div><div class="admin-group-content" id="adm-varios"></div></div>
         `;
         sn.docs.forEach(docSnap => {
             const d = docSnap.data();
             const html = `
-            <div class="admin-row">
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 20px; border-top:1px solid #f1f5f9; font-size:0.9rem;">
                 <div style="display:flex; flex-direction:column;"><strong>${d.nombre}</strong><span style="font-size:0.8rem; color:var(--success); font-weight:600;">$${Number(d.precio).toLocaleString()}</span></div>
                 <div class="actions">
                     <label class="switch"><input type="checkbox" ${d.disponible !== false ? 'checked' : ''} onchange="toggleStock('${docSnap.id}', this.checked)"><span class="slider"></span></label>
@@ -141,22 +138,48 @@ const escucharMenu = () => {
     });
 };
 
-window.completar = (id) => updateDoc(doc(db, "pedidos", id), { estado: 'completado' });
-window.toggleStock = (id, val) => updateDoc(doc(db, "platos", id), { disponible: val });
+// --- LOGICA DE ELIMINACIÓN Y REINICIO ---
+let currentAction = null;
+let targetId = null;
 
-// MODAL DE ELIMINACIÓN PERSONALIZADO
-let itemToDelete = null;
 window.triggerDelete = (id) => {
-    itemToDelete = id;
+    currentAction = 'deletePlato';
+    targetId = id;
+    document.getElementById('modal-title').innerText = "¿Eliminar plato?";
+    document.getElementById('modal-desc').innerText = "Este plato se quitará de la carta permanentemente.";
     document.getElementById('delete-modal').style.display = 'flex';
 };
-document.getElementById('confirm-delete-btn').onclick = async () => {
-    if(itemToDelete) {
-        await deleteDoc(doc(db, "platos", itemToDelete));
-        itemToDelete = null;
-        document.getElementById('delete-modal').style.display = 'none';
-    }
+
+window.triggerResetStats = () => {
+    currentAction = 'resetStats';
+    document.getElementById('modal-title').innerText = "¿Reiniciar Estadísticas?";
+    document.getElementById('modal-desc').innerText = "Se borrará todo el historial de pedidos y las ventas volverán a $0. Esta acción es irreversible.";
+    document.getElementById('delete-modal').style.display = 'flex';
 };
+
+document.getElementById('confirm-delete-btn').onclick = async () => {
+    if (currentAction === 'deletePlato' && targetId) {
+        await deleteDoc(doc(db, "platos", targetId));
+    } else if (currentAction === 'resetStats') {
+        // Solo el correo master puede ejecutar esto, pero por seguridad lo validamos aquí también
+        if(auth.currentUser.email !== CORREO_MASTER) return;
+        
+        const q = await getDocs(collection(db, "pedidos"));
+        const batch = writeBatch(db);
+        q.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+    }
+    closeModal();
+};
+
+window.closeModal = () => {
+    document.getElementById('delete-modal').style.display = 'none';
+    currentAction = null; targetId = null;
+};
+
+// --- RESTO DE FUNCIONES ---
+window.completar = (id) => updateDoc(doc(db, "pedidos", id), { estado: 'completado' });
+window.toggleStock = (id, val) => updateDoc(doc(db, "platos", id), { disponible: val });
 
 window.prepararEdicion = async (id) => {
     const snap = await getDoc(doc(db, "platos", id));
@@ -168,16 +191,12 @@ window.prepararEdicion = async (id) => {
     document.getElementById('desc').value = d.descripcion || '';
     document.getElementById('ingredients').value = d.ingredientes?.join(',') || '';
     document.getElementById('f-title').innerText = "✏️ Editando: " + d.nombre;
-    document.getElementById('s-btn').innerText = "ACTUALIZAR CAMBIOS";
-    document.getElementById('close-x').style.display = "block";
     document.querySelector('.main-content').scrollTo({top: 0, behavior: 'smooth'});
 };
 
 window.cancelarEdicion = () => {
     document.getElementById('edit-id').value = "";
     document.getElementById('f-title').innerText = "➕ Gestionar Carta";
-    document.getElementById('s-btn').innerText = "GUARDAR EN LA CARTA";
-    document.getElementById('close-x').style.display = "none";
     document.getElementById('m-form').reset();
 };
 
@@ -197,9 +216,15 @@ document.getElementById('m-form').onsubmit = async (e) => {
 };
 
 onAuthStateChanged(auth, (u) => {
-    if(u && correos.includes(u.email)) {
+    if(u && correosAutorizados.includes(u.email)) {
         document.getElementById('admin-panel').style.display = 'flex';
         document.getElementById('login-screen').style.display = 'none';
+        
+        // Mostrar botón de reinicio solo a ti
+        if(u.email === CORREO_MASTER) {
+            document.getElementById('btn-reset-stats').style.display = 'block';
+        }
+        
         escucharData(); escucharMenu();
     } else {
         if(u) signOut(auth);
