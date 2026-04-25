@@ -18,8 +18,10 @@ onAuthStateChanged(auth, (u) => {
     if(u && correosAutorizados.includes(u.email)) {
         document.getElementById('admin-panel').style.display = 'flex';
         document.getElementById('login-screen').style.display = 'none';
+        
         const superZone = document.getElementById('super-admin-zone');
         if(superZone) superZone.style.display = (u.email === CORREO_MASTER) ? 'block' : 'none';
+
         escucharCarta(); escucharPedidos(); 
     } else {
         if(u) signOut(auth);
@@ -28,19 +30,18 @@ onAuthStateChanged(auth, (u) => {
     }
 });
 
-// FUNCIÓN PARA VER EL PEDIDO DESDE LA MESA
+// NAVEGACIÓN DESDE EL PLANO DE MESAS
 window.verPedidoDeMesa = (nombreMesa) => {
-    // 1. Cambiamos la vista al Monitor de Pedidos
-    const navPedidos = document.querySelector('.sidebar .nav-item:first-child');
+    // 1. Cambiar a la vista de pedidos
+    const navPedidos = document.querySelector('.nav-item[onclick*="v-pedidos"]');
     cambiarVista('v-pedidos', navPedidos);
 
-    // 2. Buscamos el pedido en la lista y lo resaltamos
+    // 2. Buscar la tarjeta y resaltarla
     setTimeout(() => {
         const tarjetas = document.querySelectorAll('.pedido-card');
         tarjetas.forEach(card => {
-            if (card.innerText.includes(nombreMesa)) {
+            if (card.innerText.toLowerCase().includes(nombreMesa.toLowerCase())) {
                 card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                card.style.transition = "0.3s";
                 card.style.outline = "4px solid var(--accent)";
                 card.style.transform = "scale(1.02)";
                 setTimeout(() => {
@@ -49,16 +50,19 @@ window.verPedidoDeMesa = (nombreMesa) => {
                 }, 3000);
             }
         });
-    }, 400);
+    }, 450);
 };
 
+// RESET EXCLUSIVO PARA DAGOBERTO
 window.resetearEstadisticas = async () => {
-    if (confirm("¡ATENCIÓN DAGOBERTO!\n\nEsto eliminará todos los pedidos históricos. ¿Deseas continuar?")) {
-        const batch = writeBatch(db);
-        const snp = await getDocs(collection(db, "pedidos"));
-        snp.forEach(d => batch.delete(d.ref));
-        await batch.commit();
-        alert("Métricas reseteadas.");
+    if (confirm("¡ATENCIÓN DAGOBERTO!\n\nEsto borrará todos los pedidos históricos y de hoy. ¿Deseas continuar?")) {
+        try {
+            const batch = writeBatch(db);
+            const snp = await getDocs(collection(db, "pedidos"));
+            snp.forEach(d => batch.delete(d.ref));
+            await batch.commit();
+            alert("Métricas reiniciadas con éxito.");
+        } catch (e) { alert("Error al borrar datos."); }
     }
 };
 
@@ -66,26 +70,27 @@ function escucharPedidos() {
     const q = query(collection(db, "pedidos"), orderBy("timestamp", "desc"));
     onSnapshot(q, (snapshot) => {
         pedidosGlobales = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
-        renderizarListaPedidos();
+        renderizarPedidos();
         actualizarMétricas();
         renderizarPlanoMesas(pedidosGlobales);
     });
 }
 
-function renderizarListaPedidos() {
+function renderizarPedidos() {
     const lp = document.getElementById('l-pendientes');
     const la = document.getElementById('l-atendidos');
     lp.innerHTML = ''; la.innerHTML = '';
+
     pedidosGlobales.forEach(p => {
         const card = document.createElement('div');
         card.className = `pedido-card ${p.estado}`;
         card.innerHTML = `
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
                 <strong>${p.cliente}</strong>
                 <button onclick="imprimirComanda('${encodeURIComponent(JSON.stringify(p))}')" style="background:#3b82f6; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:0.7rem; cursor:pointer;">🖨️ Ticket</button>
             </div>
-            <div style="font-size:0.9rem; margin-bottom:10px;">
-                ${p.items.map(i => `• 1x ${i.nombre} ${i.nota ? `<span style='color:#eab308;'>(${i.nota})</span>` : ''}`).join('<br>')}
+            <div style="font-size:0.9rem; margin-bottom:12px; padding-left:8px; border-left:2px solid #eee;">
+                ${p.items.map(i => `• 1x ${i.nombre} ${i.nota ? `<br><small style='color:#eab308; margin-left:10px;'>(${i.nota})</small>` : ''}`).join('<br>')}
             </div>
             <div style="display:flex; gap:8px;">
                 ${p.estado === 'pendiente' ? `<button onclick="actualizarEstado('${p.id}', 'preparando')" class="btn-estado btn-preparar">Cocinar</button>` : ''}
@@ -93,26 +98,31 @@ function renderizarListaPedidos() {
                     <button onclick="cerrarPedido('${p.id}', 'nequi')" class="btn-pago nequi">Nequi</button>
                     <button onclick="cerrarPedido('${p.id}', 'banco')" class="btn-pago banco">Banco</button>
                     <button onclick="cerrarPedido('${p.id}', 'efectivo')" class="btn-pago efectivo">Efec.</button>` : ''}
-            </div>`;
+            </div>
+        `;
         if (p.estado === 'listo') la.appendChild(card); else lp.appendChild(card);
     });
 }
 
 function actualizarMétricas() {
-    let tHoy = 0, tMes = 0;
-    const ventasPlatos = {}, usoIngredientes = {}, hoy = new Date();
+    let tHoy = 0, tMes = 0, tN = 0, tB = 0, tE = 0;
+    const hoy = new Date();
     pedidosGlobales.forEach(p => {
         if(!p.timestamp) return;
         const f = p.timestamp.toDate();
         if(f.getMonth() === hoy.getMonth()) tMes += p.total;
-        if(f.getDate() === hoy.getDate() && f.getMonth() === hoy.getMonth()) tHoy += p.total;
-        p.items.forEach(item => {
-            ventasPlatos[item.nombre] = (ventasPlatos[item.nombre] || 0) + 1;
-            (menuGlobal[item.nombre] || []).forEach(ing => usoIngredientes[ing] = (usoIngredientes[ing] || 0) + 1);
-        });
+        if(f.getDate() === hoy.getDate() && f.getMonth() === hoy.getMonth()) {
+            tHoy += p.total;
+            if(p.metodoPago === 'nequi') tN += p.total;
+            if(p.metodoPago === 'banco') tB += p.total;
+            if(p.metodoPago === 'efectivo') tE += p.total;
+        }
     });
     document.getElementById('s-hoy').innerText = `$${tHoy.toLocaleString()}`;
     document.getElementById('s-mes').innerText = `$${tMes.toLocaleString()}`;
+    document.getElementById('s-nequi').innerText = `$${tN.toLocaleString()}`;
+    document.getElementById('s-bancolombia').innerText = `$${tB.toLocaleString()}`;
+    document.getElementById('s-efectivo').innerText = `$${tE.toLocaleString()}`;
 }
 
 window.actualizarEstado = async (id, est) => await updateDoc(doc(db, "pedidos", id), { estado: est });
@@ -124,13 +134,18 @@ function escucharCarta() {
         list.innerHTML = '';
         snap.forEach(d => {
             const p = d.data(); p.id = d.id;
-            menuGlobal[p.nombre] = p.ingredientes || [];
-            list.innerHTML += `<div style="background:white; padding:10px; margin-bottom:5px; border-radius:8px; display:flex; justify-content:space-between;">
-                <span>${p.nombre}</span><button onclick="editarPlato('${p.id}','${p.nombre}',${p.precio},'${p.categoria}','','${(p.ingredientes||[]).join(',')}')">Edit</button>
+            list.innerHTML += `<div style="background:white; padding:12px; margin-bottom:8px; border-radius:8px; border:1px solid #ddd; display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-size:0.9rem;"><strong>${p.nombre}</strong><br>$${p.precio.toLocaleString()}</div>
+                <div style="display:flex; gap:12px; align-items:center;">
+                    <label class="switch"><input type="checkbox" ${p.disponible!==false?'checked':''} onchange="toggleDisp('${p.id}', this.checked)"><span class="slider"></span></label>
+                    <button onclick="editarPlato('${p.id}','${p.nombre}',${p.precio},'${p.categoria}','${p.descripcion||''}','${(p.ingredientes||[]).join(',')}')" style="border:none; background:none; color:#3b82f6; cursor:pointer;">Edit</button>
+                </div>
             </div>`;
         });
     });
 }
+
+window.toggleDisp = async (id, disp) => await updateDoc(doc(db, "platos", id), { disponible: disp });
 
 window.renderizarPlanoMesas = (pedidos) => {
     const grid = document.getElementById('grid-mesas');
@@ -153,6 +168,40 @@ window.renderizarPlanoMesas = (pedidos) => {
 window.imprimirComanda = (pJson) => {
     const p = JSON.parse(decodeURIComponent(pJson));
     const win = window.open('', '', 'width=300,height=600');
-    win.document.write(`<h3>IKU</h3><hr>${p.cliente}<br>${p.items.map(i=>i.nombre).join('<br>')}`);
+    win.document.write(`<h3>IKU</h3><hr>${p.cliente}<br><br>${p.items.map(i=>'• 1x '+i.nombre).join('<br>')}<br><hr>Total: $${p.total.toLocaleString()}`);
     win.print(); win.close();
+};
+
+// Lógica de formulario igual que siempre
+window.editarPlato = (id, n, p, c, d, i) => {
+    document.getElementById('edit-id').value = id;
+    document.getElementById('name').value = n;
+    document.getElementById('price').value = p;
+    document.getElementById('category').value = c;
+    document.getElementById('desc').value = d;
+    document.getElementById('ingredients').value = i;
+    document.getElementById('f-title').innerText = "Editando Plato";
+    document.getElementById('btn-cancelar').style.display = 'block';
+};
+
+window.cancelarEdicion = () => {
+    document.getElementById('m-form').reset();
+    document.getElementById('edit-id').value = '';
+    document.getElementById('f-title').innerText = "Configurar Plato";
+    document.getElementById('btn-cancelar').style.display = 'none';
+};
+
+document.getElementById('m-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('edit-id').value;
+    const datos = {
+        nombre: document.getElementById('name').value,
+        precio: Number(document.getElementById('price').value),
+        categoria: document.getElementById('category').value,
+        descripcion: document.getElementById('desc').value,
+        ingredientes: document.getElementById('ingredients').value.split(',').map(s=>s.trim()).filter(s=>s!==''),
+        timestamp: serverTimestamp()
+    };
+    id ? await updateDoc(doc(db, "platos", id), datos) : await addDoc(collection(db, "platos"), {...datos, disponible: true});
+    cancelarEdicion();
 };
