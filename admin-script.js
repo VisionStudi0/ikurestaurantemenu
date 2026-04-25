@@ -8,12 +8,26 @@ const correosAutorizados = [CORREO_MASTER, "kelly.araujotafur@gmail.com"];
 const ICON_EDIT = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>`;
 const ICON_TRASH = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
 
+let primeraCargaPedidos = true;
+
 const escucharData = () => {
     onSnapshot(query(collection(db, "pedidos"), orderBy("timestamp", "desc")), (sn) => {
         const lp = document.getElementById('l-pendientes');
         const la = document.getElementById('l-atendidos');
         const allPedidos = [];
         const hoy = new Date().toDateString();
+
+        // Lógica de sonido para nuevos pedidos
+        sn.docChanges().forEach((change) => {
+            if (change.type === "added" && !primeraCargaPedidos) {
+                const nuevoPedido = change.doc.data();
+                if (nuevoPedido.estado === 'pendiente') {
+                    const audio = document.getElementById('notif-sound');
+                    if(audio) audio.play().catch(e => console.log("Interacción requerida para audio"));
+                }
+            }
+        });
+        primeraCargaPedidos = false;
 
         lp.innerHTML = ''; la.innerHTML = '';
         sn.docs.forEach(docSnap => {
@@ -52,10 +66,16 @@ const procesarEstadisticas = async (pedidos) => {
     const hoyStr = ahora.toDateString();
     let vHoy = 0, vMes = 0;
     const conteoGlobal = {};
+    const conteoIngredientes = {};
 
     const platosSnap = await getDocs(collection(db, "platos"));
     const catMapa = {};
-    platosSnap.forEach(d => { catMapa[d.data().nombre] = d.data().categoria; });
+    const ingredientesMapa = {};
+    
+    platosSnap.forEach(d => { 
+        catMapa[d.data().nombre] = d.data().categoria; 
+        ingredientesMapa[d.data().nombre] = d.data().ingredientes || [];
+    });
 
     pedidos.forEach(p => {
         if (p.estado !== 'completado' || !p.timestamp) return;
@@ -63,10 +83,21 @@ const procesarEstadisticas = async (pedidos) => {
         const mKey = `${f.getMonth() + 1}-${f.getFullYear()}`;
         if (f.toDateString() === hoyStr) vHoy += p.total;
         if (mKey === mesActual) vMes += p.total;
+        
         p.items.forEach(i => {
             if (mKey === mesActual) {
+                // Ranking de Platos
                 if (!conteoGlobal[i.nombre]) conteoGlobal[i.nombre] = { cantidad: 0, cat: catMapa[i.nombre] || 'varios' };
                 conteoGlobal[i.nombre].cantidad++;
+
+                // Ranking de Ingredientes
+                const ingredientesDelPlato = ingredientesMapa[i.nombre] || [];
+                ingredientesDelPlato.forEach(ing => {
+                    const ingNombre = ing.trim().toUpperCase();
+                    if(ingNombre !== "") {
+                        conteoIngredientes[ingNombre] = (conteoIngredientes[ingNombre] || 0) + 1;
+                    }
+                });
             }
         });
     });
@@ -87,6 +118,23 @@ const procesarEstadisticas = async (pedidos) => {
             <div style="padding:15px; background:#f8fafc; border-radius:12px; font-size:0.8rem;"><strong>📅 Menú Día</strong><br>${tops.diario}</div>
             <div style="padding:15px; background:#f8fafc; border-radius:12px; font-size:0.8rem;"><strong>🍔 Rápidas</strong><br>${tops.rapida}</div>
             <div style="padding:15px; background:#f8fafc; border-radius:12px; font-size:0.8rem;"><strong>✨ Varios</strong><br>${tops.varios}</div>`;
+    }
+
+    const ingDiv = document.getElementById('rankings-ingredientes');
+    if(ingDiv) {
+        const topIngredientes = Object.entries(conteoIngredientes)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10); // Muestra el top 10 de ingredientes
+
+        if(topIngredientes.length === 0) {
+            ingDiv.innerHTML = '<p style="font-size:0.85rem; color:#94a3b8;">Aún no hay datos de ingredientes este mes.</p>';
+        } else {
+            ingDiv.innerHTML = topIngredientes.map(([ing, cant]) => `
+                <div style="background:#fff7ed; border:1px solid #fed7aa; color:#c2410c; padding:8px 15px; border-radius:8px; font-weight:600; font-size:0.85rem; display:flex; align-items:center; gap:8px;">
+                    ${ing} <span style="background:#ea580c; color:white; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-size:0.7rem;">${cant}</span>
+                </div>
+            `).join('');
+        }
     }
 };
 
