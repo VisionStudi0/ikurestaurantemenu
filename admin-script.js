@@ -1,11 +1,12 @@
 import { db, auth } from './firebase-config.js';
-import { collection, onSnapshot, query, orderBy, doc, deleteDoc, updateDoc, addDoc, getDoc, getDocs, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
+import { collection, onSnapshot, query, orderBy, doc, deleteDoc, updateDoc, getDoc, getDocs, serverTimestamp, writeBatch, addDoc } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
 import { GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
 
 const CORREO_MASTER = "cb01grupo@gmail.com";
 const correosAutorizados = [CORREO_MASTER, "kelly.araujotafur@gmail.com"];
 let totalPAnterior = 0;
 
+// RESTAURACIÓN DE ICONOS SVG DE ALTA CALIDAD
 const ICON_EDIT = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>`;
 const ICON_TRASH = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
 
@@ -69,9 +70,8 @@ const escucharData = () => {
             const p = docSnap.data();
             allPedidos.push(p);
 
-            // ITEMS CON SUS NOTAS (CORREGIDO Y VISIBLE)
             const itemsHTML = p.items.map(i => `
-                <div style="margin-bottom:8px;">
+                <div style="margin-bottom:8px; border-bottom:1px solid #f1f1f1; padding-bottom:5px;">
                     • <strong>${i.nombre}</strong>
                     ${i.nota ? `<span class="item-nota">⚠️ NOTA: ${i.nota}</span>` : ''}
                 </div>
@@ -81,18 +81,18 @@ const escucharData = () => {
                 pCount++;
                 lp.innerHTML += `
                 <div class="pedido-card">
-                    <div class="pedido-header"><strong>👤 ${p.cliente}</strong><span class="badge-tipo">${p.tipo.toUpperCase()}</span></div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><strong>👤 ${p.cliente}</strong><span style="font-size:0.65rem; font-weight:700; padding:4px 10px; border-radius:20px; background:#f1f5f9; color:#64748b;">${p.tipo.toUpperCase()}</span></div>
                     <div style="margin:10px 0;">${itemsHTML}</div>
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <span style="font-weight:bold; color:var(--success);">$${Number(p.total).toLocaleString()}</span>
                         <button class="btn-ready" onclick="completar('${docSnap.id}')">LISTO</button>
                     </div>
                 </div>`;
-            } else if (p.estado === 'completado' && p.timestamp) {
-                // Comprobamos si el pedido completado es de HOY
-                if (p.timestamp.toDate().toDateString() === hoy) {
+            } else if (p.estado === 'completado') {
+                const pDate = p.timestamp ? p.timestamp.toDate().toDateString() : new Date().toDateString();
+                if (pDate === hoy) {
                     la.innerHTML += `
-                    <div class="admin-row" style="border:none; border-bottom:1px solid #f1f5f9;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 20px; border-bottom:1px solid #f1f5f9; font-size:0.9rem;">
                         <span><strong>${p.cliente}</strong> <small style="color:#94a3b8; margin-left:10px;">${p.tipo}</small></span>
                         <span style="color:var(--success); font-weight:600;">$${Number(p.total).toLocaleString()}</span>
                     </div>`;
@@ -118,10 +118,10 @@ const escucharMenu = () => {
             const html = `
             <div class="admin-row">
                 <div style="display:flex; flex-direction:column;"><strong>${d.nombre}</strong><span style="font-size:0.8rem; color:var(--success); font-weight:600;">$${Number(d.precio).toLocaleString()}</span></div>
-                <div style="display:flex; gap:8px; align-items:center;">
+                <div style="display:flex; gap:12px; align-items:center;">
                     <label class="switch"><input type="checkbox" ${d.disponible !== false ? 'checked' : ''} onchange="toggleStock('${docSnap.id}', this.checked)"><span class="slider"></span></label>
-                    <button onclick="prepararEdicion('${docSnap.id}')" style="color:blue; border:none; background:none; cursor:pointer;">${ICON_EDIT}</button>
-                    <button onclick="triggerDelete('${docSnap.id}')" style="color:red; border:none; background:none; cursor:pointer;">${ICON_TRASH}</button>
+                    <button onclick="prepararEdicion('${docSnap.id}')" class="btn-icon btn-edit-icon">${ICON_EDIT}</button>
+                    <button onclick="triggerDelete('${docSnap.id}')" class="btn-icon btn-delete-icon">${ICON_TRASH}</button>
                 </div>
             </div>`;
             const target = document.getElementById(`adm-${d.categoria}`);
@@ -133,7 +133,6 @@ const escucharMenu = () => {
 window.completar = (id) => updateDoc(doc(db, "pedidos", id), { estado: 'completado' });
 window.toggleStock = (id, val) => updateDoc(doc(db, "platos", id), { disponible: val });
 
-// ELIMINAR Y REINICIAR (SOLO MASTER)
 let currentAction = null; let targetId = null;
 window.triggerDelete = (id) => { currentAction = 'deletePlato'; targetId = id; document.getElementById('modal-title').innerText = "¿Eliminar plato?"; document.getElementById('delete-modal').style.display = 'flex'; };
 window.triggerResetStats = () => { currentAction = 'resetStats'; document.getElementById('modal-title').innerText = "¿Reiniciar Estadísticas?"; document.getElementById('delete-modal').style.display = 'flex'; };
@@ -147,7 +146,7 @@ document.getElementById('confirm-delete-btn').onclick = async () => {
 window.closeModal = () => { document.getElementById('delete-modal').style.display = 'none'; currentAction = null; targetId = null; };
 
 window.prepararEdicion = async (id) => {
-    const snap = await getDoc(doc(db, "platos", id)); const d = snap.data();
+    const snap = await getDoc(doc(doc(db, "platos", id))); const d = snap.data();
     document.getElementById('edit-id').value = id; document.getElementById('name').value = d.nombre;
     document.getElementById('price').value = d.precio; document.getElementById('category').value = d.categoria;
     document.getElementById('desc').value = d.descripcion || ''; document.getElementById('ingredients').value = d.ingredientes?.join(',') || '';
