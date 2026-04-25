@@ -1,8 +1,24 @@
 import { db } from './firebase-config.js';
-import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
+import { collection, addDoc, onSnapshot, doc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
 
 let carrito = [];
 const ICON_TRASH = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+
+// NUEVO: Autocompletado por código QR (ej: misitio.com/?mesa=4)
+document.addEventListener("DOMContentLoaded", () => {
+    const params = new URLSearchParams(window.location.search);
+    const mesaParam = params.get('mesa');
+    if (mesaParam) {
+        const inputNombre = document.getElementById('nombre-cliente');
+        const selectTipo = document.getElementById('tipo-servicio');
+        if (inputNombre && selectTipo) {
+            selectTipo.value = 'mesa';
+            inputNombre.value = "Mesa " + mesaParam;
+            inputNombre.readOnly = true; // Bloquea el campo para que el cliente no lo borre
+            inputNombre.style.backgroundColor = "#f8fafc";
+        }
+    }
+});
 
 window.toggleDish = (header) => {
     const dish = header.parentElement;
@@ -12,11 +28,13 @@ window.toggleDish = (header) => {
 };
 
 window.toggleCart = () => document.getElementById('cart-modal').classList.toggle('open');
+window.cerrarTracker = () => document.getElementById('tracker-modal').classList.remove('open');
 
 window.agregarAlCarrito = (nombre, precio, id) => {
     const notaInput = document.getElementById(`note-${id}`);
     const nota = notaInput ? notaInput.value.trim() : "";
-    carrito.push({ nombre, precio: parseInt(precio), nota });
+    // Se guarda el 'id' para poder descontar inventario en la cocina
+    carrito.push({ nombre, precio: parseInt(precio), nota, id });
     if(notaInput) notaInput.value = '';
     actualizarCarrito();
 };
@@ -52,6 +70,7 @@ window.quitar = (i) => { carrito.splice(i, 1); actualizarCarrito(); };
 window.enviarPedido = async () => {
     const cliente = document.getElementById('nombre-cliente')?.value;
     const tipo = document.getElementById('tipo-servicio')?.value;
+    const metodoPago = document.getElementById('metodo-pago')?.value || 'efectivo';
     const quiereWA = document.getElementById('check-whatsapp')?.checked;
     
     const btn = document.querySelector('.btn-send-order');
@@ -67,35 +86,51 @@ window.enviarPedido = async () => {
     try {
         btn.innerHTML = "Enviando... ⏳";
         
-        await addDoc(collection(db, "pedidos"), {
-            cliente, tipo, items: carrito, total, estado: "pendiente", timestamp: serverTimestamp()
+        const docRef = await addDoc(collection(db, "pedidos"), {
+            cliente, tipo, metodoPago, items: carrito, total, estado: "pendiente", timestamp: serverTimestamp()
         });
         
         if (quiereWA) {
-            const msjWA = `*NUEVO PEDIDO IKU*%0A*Cliente:* ${cliente}%0A*Servicio:* ${tipo}%0A*Total:* $${total.toLocaleString()}`;
+            const msjWA = `*NUEVO PEDIDO IKU*%0A*Cliente:* ${cliente}%0A*Servicio:* ${tipo}%0A*Pago:* ${metodoPago}%0A*Total:* $${total.toLocaleString()}`;
             window.open(`https://wa.me/573210000000?text=${msjWA}`);
         }
         
-        // Mensaje de éxito en el mismo botón
         btn.innerHTML = "¡Pedido enviado! ✅";
         
-        // Esperamos 1.5 segundos para que el cliente lea, limpiamos y cerramos
         setTimeout(() => {
             carrito = []; 
             actualizarCarrito(); 
-            document.getElementById('nombre-cliente').value = ''; // Limpiamos el input
+            if (!new URLSearchParams(window.location.search).get('mesa')) {
+                document.getElementById('nombre-cliente').value = ''; 
+            }
             window.toggleCart();
-            btn.innerHTML = textoOriginal; // Restauramos el botón
+            btn.innerHTML = textoOriginal;
+            iniciarTracker(docRef.id); // Inicia la pantalla de estado
         }, 1500);
 
     } catch (e) { 
         btn.innerHTML = "Error al enviar ❌";
         setTimeout(() => btn.innerHTML = textoOriginal, 2000);
-        console.error(e);
     }
 };
 
-// Carga de platos
+// NUEVO: Pantalla de seguimiento en tiempo real
+window.iniciarTracker = (id) => {
+    document.getElementById('tracker-modal').classList.add('open');
+    onSnapshot(doc(db, "pedidos", id), (docSnap) => {
+        if(docSnap.exists()) {
+            const est = docSnap.data().estado;
+            const icon = document.getElementById('tracker-icon');
+            const stEl = document.getElementById('tracker-status');
+            const descEl = document.getElementById('tracker-desc');
+            
+            if(est === 'pendiente') { icon.innerText = '📥'; stEl.innerText = 'Recibido'; descEl.innerText = 'Esperando confirmación de cocina...'; stEl.style.color = "var(--primary)"; }
+            if(est === 'preparando') { icon.innerText = '🍳'; stEl.innerText = 'En el sartén'; descEl.innerText = 'El chef ya está preparando tu orden.'; stEl.style.color = "#f59e0b"; }
+            if(est === 'completado') { icon.innerText = '🏃‍♂️'; stEl.innerText = '¡Listo!'; descEl.innerText = 'Tu pedido está listo para entregar/recoger.'; stEl.style.color = "var(--success)"; }
+        }
+    });
+};
+
 onSnapshot(query(collection(db, "platos"), orderBy("timestamp", "desc")), (sn) => {
     const sDiario = document.getElementById('diario');
     const sRapida = document.getElementById('rapida');
@@ -136,31 +171,16 @@ onSnapshot(query(collection(db, "platos"), orderBy("timestamp", "desc")), (sn) =
     });
 });
 
-// --- SOLUCIÓN FUNCIONAL DE LAS PESTAÑAS (TABS) ---
-
-// 1. Ocultar de entrada todo lo que no sea la pestaña activa
 document.querySelectorAll('.menu-section').forEach(s => {
     s.style.display = s.classList.contains('active') ? 'block' : 'none';
 });
 
-// 2. Controlar la visibilidad al hacer clic
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.onclick = () => {
-        // Quitar la clase active a todos los botones
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        
-        // Ocultar todas las secciones forzando display: none
-        document.querySelectorAll('.menu-section').forEach(s => {
-            s.classList.remove('active');
-            s.style.display = 'none';
-        });
-        
-        // Activar el botón y MOSTRAR la sección seleccionada
+        document.querySelectorAll('.menu-section').forEach(s => { s.classList.remove('active'); s.style.display = 'none'; });
         btn.classList.add('active');
         const target = document.getElementById(btn.dataset.tab);
-        if(target) {
-            target.classList.add('active');
-            target.style.display = 'block'; // <-- ESTO EVITA QUE SE VEAN REPETIDOS
-        }
+        if(target) { target.classList.add('active'); target.style.display = 'block'; }
     };
 });
