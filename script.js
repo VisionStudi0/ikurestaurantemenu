@@ -13,6 +13,7 @@ const mostrarNotificacion = (mensaje) => {
     setTimeout(() => { toastDiv.classList.remove("show"); }, 3000);
 };
 
+// Función para abrir/cerrar platos (Acordeón)
 window.toggleDish = (header) => {
     const dish = header.parentElement;
     const isOpened = dish.classList.contains('expanded');
@@ -20,6 +21,7 @@ window.toggleDish = (header) => {
     if (!isOpened) dish.classList.add('expanded');
 };
 
+// Función para abrir/cerrar carrito
 window.toggleCart = () => {
     const modal = document.getElementById('cart-modal');
     if(modal) modal.classList.toggle('open');
@@ -49,12 +51,12 @@ function actualizarCarrito() {
         total += item.precio;
         cont.innerHTML += `
             <div style="border-bottom:1px solid #eee; padding:15px 0;">
-                <div style="display:flex; justify-content:space-between;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
                     <strong>${item.nombre}</strong> 
                     <span>$${item.precio.toLocaleString()}</span>
                 </div>
-                ${item.nota ? `<p style="font-size:0.8rem; color:#666; font-style:italic;">Nota: ${item.nota}</p>` : ''}
-                <button onclick="quitar(${i})" style="color:#ff4444; background:none; border:none; cursor:pointer; font-size:0.8rem; margin-top:5px;">Quitar</button>
+                ${item.nota ? `<p style="font-size:0.8rem; color:#666; font-style:italic; margin-top:4px;">Nota: ${item.nota}</p>` : ''}
+                <button onclick="quitar(${i})" style="color:#ff4444; background:none; border:none; cursor:pointer; font-size:0.8rem; margin-top:8px; font-weight:600;">Remover</button>
             </div>`;
     });
     
@@ -87,28 +89,28 @@ window.enviarPedido = async () => {
 
         if (quiereWhatsApp) {
             const textoWA = `*IKU - NUEVO PEDIDO*%0A*Cliente:* ${mesaDireccion}%0A*Items:*%0A${carrito.map(i => `- ${i.nombre}`).join('%0A')}%0A*Total:* $${total.toLocaleString()}`;
-            window.open(`https://wa.me/573210000000?text=${textoWA}`);
+            window.open(`https://wa.me/573210000000?text=${textoWA}`); // Cambia el numero aqui
         }
 
-        mostrarNotificacion("¡Pedido enviado con éxito! 🧑‍🍳"); 
+        mostrarNotificacion("¡Pedido enviado! 🧑‍🍳"); 
         carrito = []; 
         actualizarCarrito(); 
         window.toggleCart();
     } catch (e) { 
-        mostrarNotificacion("Error al conectar con la cocina."); 
+        mostrarNotificacion("Error al conectar con cocina."); 
     }
 };
 
-// RENDERIZADO POR SECCIONES SEPARADAS
+// ESCUCHAR DATOS DE FIREBASE Y RENDERIZAR POR CATEGORÍA
 onSnapshot(query(collection(db, "platos"), orderBy("timestamp", "desc")), (sn) => {
-    const secciones = {
+    const sections = {
         diario: document.getElementById('diario'),
         rapida: document.getElementById('rapida'),
         varios: document.getElementById('varios')
     };
 
-    // Limpiar todos los contenedores antes de rellenar
-    Object.values(secciones).forEach(sec => { if(sec) sec.innerHTML = ''; });
+    // Limpiar antes de cargar
+    Object.values(sections).forEach(s => { if(s) s.innerHTML = ''; });
 
     const loader = document.getElementById('loader');
     if(loader) loader.style.display = 'none';
@@ -120,37 +122,39 @@ onSnapshot(query(collection(db, "platos"), orderBy("timestamp", "desc")), (sn) =
         const html = `
             <div class="dish-item">
                 <div class="dish-header" onclick="toggleDish(this)">
-                    <h3>${d.nombre}</h3> 
-                    <strong>$${d.precio.toLocaleString()}</strong>
+                    <div>
+                        <h3>${d.nombre}</h3>
+                        <p style="font-size:0.85rem; color:#777;">${d.descripcion || ''}</p>
+                    </div>
+                    <strong class="dish-price">$${Number(d.precio).toLocaleString()}</strong>
                 </div>
                 <div class="expand-content">
-                    <p style="font-size:0.9rem; color:#555; margin-bottom:10px;">${d.descripcion || ''}</p>
-                    <input type="text" id="note-${docSnap.id}" class="note-input" placeholder="¿Alguna nota especial?">
+                    <input type="text" id="note-${docSnap.id}" class="note-input" placeholder="¿Nota especial? (Ej: sin cebolla)">
                     <button class="btn-add-cart" onclick="agregarAlCarrito('${d.nombre}', '${d.precio}', '${docSnap.id}')">AÑADIR AL PEDIDO</button>
                 </div>
             </div>`;
         
-        if (secciones[d.categoria]) {
-            secciones[d.categoria].innerHTML += html;
+        if (sections[d.categoria]) {
+            sections[d.categoria].innerHTML += html;
         }
     });
 
-    // Mensaje si no hay platos en una categoría
-    Object.keys(secciones).forEach(key => {
-        if (secciones[key] && secciones[key].innerHTML === '') {
-            secciones[key].innerHTML = '<p style="text-align:center; padding:20px; color:#888;">No hay platos en esta sección por ahora.</p>';
+    // Mensaje si no hay platos
+    Object.keys(sections).forEach(key => {
+        if (sections[key] && sections[key].innerHTML === '') {
+            sections[key].innerHTML = '<p style="text-align:center; padding:30px; color:#999; font-size:0.9rem;">No hay platos disponibles en esta categoría.</p>';
         }
     });
 });
 
-// LOGICA DE PESTAÑAS (TABS)
+// LOGICA DE LAS PESTAÑAS (TABS)
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.onclick = () => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.menu-section').forEach(s => s.classList.remove('active'));
         
         btn.classList.add('active');
-        const target = document.getElementById(btn.dataset.tab);
-        if(target) target.classList.add('active');
+        const targetId = btn.getAttribute('data-tab');
+        document.getElementById(targetId).classList.add('active');
     };
 });
