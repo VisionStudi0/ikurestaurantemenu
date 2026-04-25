@@ -1,4 +1,4 @@
-/* Archivo: admin-style.css */
+/* --- admin-style.css --- */
 
 :root { 
     --sidebar: #0f1115; 
@@ -48,6 +48,30 @@ body {
 
 .admin-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; }
 .actions { display: flex; gap: 10px; align-items: center; }
-.btn-icon { width: 36px; height: 36px; border-radius: 10px; border: none; cursor: pointer; }
+.btn-icon { width: 36px; height: 36px; border-radius: 10px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; background: #f1f5f9; transition: 0.2s; }
+.btn-icon:hover { background: #e2e8f0; }
+.btn-icon.delete { color: var(--danger); background: #fef2f2; }
+.btn-icon.delete:hover { background: #fee2e2; }
 
-/* ... Asegúrate de pegar AQUÍ el resto de clases que tenías en tu <style> original ... */
+/* Switch del Administrador */
+.switch { position: relative; display: inline-block; width: 42px; height: 24px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; inset: 0; background-color: #cbd5e1; border-radius: 34px; transition: .4s; }
+.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: .4s; }
+.switch input:checked + .slider { background-color: var(--success); }
+.switch input:checked + .slider:before { transform: translateX(18px); }
+
+/* --- NUEVO: Control para minimizar Atendidos --- */
+#l-atendidos { display: block; }
+.lista-atendidos-oculta { display: none !important; }
+
+/* --- Responsividad --- */
+@media (max-width: 768px) {
+    #admin-panel { flex-direction: column; }
+    .sidebar { width: 100%; height: auto; padding: 15px; flex-direction: row; flex-wrap: wrap; justify-content: space-around; align-items: center; }
+    .sidebar h2 { margin-bottom: 0; width: 100%; text-align: center; margin-bottom: 15px; }
+    .nav-item { padding: 10px 15px; border-left: none; border-bottom: 3px solid transparent; font-size: 0.9rem; }
+    .nav-item.active { border-left-color: transparent; border-bottom-color: var(--accent); }
+    .main-content { padding: 20px; }
+    .view-section { max-width: 100%; }
+}
