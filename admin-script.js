@@ -354,3 +354,83 @@ onAuthStateChanged(auth, (u) => {
     }
 });
 document.getElementById('login-btn').onclick = () => signInWithPopup(auth, new GoogleAuthProvider());
+// =========================================================
+// NUEVO: Funciones de Control de Mesas e Impresión de Tickets
+// =========================================================
+
+// Esta función reconstruye la cuadrícula de mesas cada vez que hay un cambio en pedidos
+function renderizarPlanoMesas(pedidos) {
+    const grid = document.getElementById('grid-mesas');
+    if (!grid) return;
+    
+    const mesasActivas = pedidos.filter(p => (p.estado === 'pendiente' || p.estado === 'preparando') && p.cliente.toLowerCase().includes('mesa'));
+    
+    let html = '';
+    // Asumimos un máximo de 12 mesas en el restaurante para armar la cuadrícula
+    for(let i = 1; i <= 12; i++) {
+        const nombreMesa = `Mesa ${i}`;
+        const pedidoMesa = mesasActivas.find(p => p.cliente.toLowerCase() === nombreMesa.toLowerCase());
+        
+        if(pedidoMesa) {
+            // Mesa Ocupada
+            html += `
+            <div class="mesa-card mesa-ocupada" onclick="cambiarVista('v-pedidos', document.querySelector('.nav-item:nth-child(2)'))">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 8px; color: #d97706;"><path d="M17 11h2a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h2"/><path d="M9 11V6a3 3 0 0 1 6 0v5"/><path d="M12 11v6"/></svg>
+                <h3 style="margin-bottom:4px; font-weight:600;">${nombreMesa}</h3>
+                <span style="font-size:0.75rem; background:var(--accent); color:#000; padding:2px 6px; border-radius:4px; display:inline-block; font-weight: 500;">${pedidoMesa.estado.toUpperCase()}</span>
+                <div style="font-size:0.9rem; margin-top:8px; font-weight:600; color:var(--text-main);">$${Number(pedidoMesa.total).toLocaleString()}</div>
+            </div>`;
+        } else {
+            // Mesa Libre
+            html += `
+            <div class="mesa-card mesa-libre">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 8px; color: var(--success); opacity: 0.5;"><rect x="3" y="8" width="18" height="4" rx="1"/><line x1="12" y1="8" x2="12" y2="21"/><line x1="19" y1="12" x2="19" y2="21"/><line x1="5" y1="12" x2="5" y2="21"/></svg>
+                <h3 style="margin-bottom:4px; font-weight:600;">${nombreMesa}</h3>
+                <span style="font-size:0.8rem; color:var(--success); font-weight: 500;">Disponible</span>
+            </div>`;
+        }
+    }
+    grid.innerHTML = html;
+}
+
+// Ventana de Impresión Térmica
+window.imprimirComanda = (pJsonStr) => {
+    const p = JSON.parse(decodeURIComponent(pJsonStr));
+    const fecha = new Date().toLocaleString();
+    
+    // Armado del ticket estructurado
+    let ticketHTML = `
+        <div id="ticket-impresion">
+            <h2 style="text-align:center; margin-bottom:5px;">IKU RESTAURANTE</h2>
+            <p style="text-align:center; margin-top:0; font-size:12px;">Comanda de Cocina</p>
+            <hr style="border-top:1px dashed #000; margin:10px 0;">
+            <p style="margin: 5px 0;"><strong>Cliente:</strong> ${p.cliente}</p>
+            <p style="margin: 5px 0;"><strong>Tipo:</strong> ${p.tipo.toUpperCase()}</p>
+            <p style="margin: 5px 0;"><strong>Fecha:</strong> ${fecha}</p>
+            <hr style="border-top:1px dashed #000; margin:10px 0;">
+            <ul style="list-style:none; padding:0; margin:0;">
+                ${p.items.map(i => `
+                    <li style="margin-bottom:8px; font-size: 14px;">
+                        <strong>1x ${i.nombre}</strong> <br> 
+                        ${i.nota ? `<span style="font-size:12px; margin-left:15px;">- Nota: ${i.nota}</span>` : ''}
+                    </li>
+                `).join('')}
+            </ul>
+            <hr style="border-top:1px dashed #000; margin:10px 0;">
+            <h3 style="text-align:right; margin: 5px 0;">Total: $${Number(p.total).toLocaleString()}</h3>
+            <p style="text-align:center; margin-top:15px; font-size:12px;">¡Gracias!</p>
+        </div>
+    `;
+    
+    // Inyectar al HTML, imprimir e inmediatamente borrar
+    const div = document.createElement('div');
+    div.innerHTML = ticketHTML;
+    document.body.appendChild(div);
+    window.print();
+    document.body.removeChild(div);
+};
+
+// Modificación final: Para que el mapa de mesas funcione y se sincronice, 
+// busca dentro de tu función `escucharPedidos()`, justo al final de la línea `sn.docs.forEach(docSnap => { ... });`
+// y agrega esto:
+// renderizarPlanoMesas(listaPedidos);
