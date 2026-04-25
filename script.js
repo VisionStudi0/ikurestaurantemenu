@@ -2,7 +2,6 @@ import { db } from './firebase-config.js';
 import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
 
 let carrito = [];
-
 const ICON_TRASH = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
 
 window.toggleDish = (header) => {
@@ -15,18 +14,21 @@ window.toggleDish = (header) => {
 window.toggleCart = () => document.getElementById('cart-modal').classList.toggle('open');
 
 window.agregarAlCarrito = (nombre, precio, id) => {
-    const nota = document.getElementById(`note-${id}`)?.value || "";
+    const notaInput = document.getElementById(`note-${id}`);
+    const nota = notaInput ? notaInput.value.trim() : "";
     carrito.push({ nombre, precio: parseInt(precio), nota });
-    if(document.getElementById(`note-${id}`)) document.getElementById(`note-${id}`).value = '';
+    if(notaInput) notaInput.value = '';
     actualizarCarrito();
 };
 
 function actualizarCarrito() {
     const cont = document.getElementById('cart-items');
     const priceEl = document.getElementById('cart-total-price');
-    document.getElementById('cart-count').innerText = carrito.length;
+    const countEl = document.getElementById('cart-count');
     
+    if(countEl) countEl.innerText = carrito.length;
     if(!cont) return;
+    
     cont.innerHTML = '';
     let total = 0;
     
@@ -36,15 +38,13 @@ function actualizarCarrito() {
             <div class="cart-item-row">
                 <div>
                     <strong>${item.nombre}</strong>
-                    <span style="color:var(--success); font-weight:600; font-size:0.9rem;">$${item.precio.toLocaleString()}</span>
+                    <span style="color:var(--success); font-weight:600; font-size:0.9rem; display:block;">$${item.precio.toLocaleString()}</span>
                     ${item.nota ? `<span class="cart-item-note">Nota: ${item.nota}</span>` : ''}
                 </div>
-                <button onclick="quitar(${i})" class="btn-remove-item">
-                    ${ICON_TRASH}
-                </button>
+                <button onclick="quitar(${i})" class="btn-remove-item">${ICON_TRASH}</button>
             </div>`;
     });
-    priceEl.innerText = `$${total.toLocaleString()}`;
+    if(priceEl) priceEl.innerText = `$${total.toLocaleString()}`;
 }
 
 window.quitar = (i) => { carrito.splice(i, 1); actualizarCarrito(); };
@@ -54,24 +54,35 @@ window.enviarPedido = async () => {
     const tipo = document.getElementById('tipo-servicio')?.value;
     const quiereWA = document.getElementById('check-whatsapp')?.checked;
 
-    if (!cliente || carrito.length === 0) return alert("Completa tus datos.");
+    if (!cliente || carrito.length === 0) return alert("Por favor ingresa tu nombre y agrega productos.");
 
     const total = carrito.reduce((s, x) => s + x.precio, 0);
     try {
         await addDoc(collection(db, "pedidos"), {
             cliente, tipo, items: carrito, total, estado: "pendiente", timestamp: serverTimestamp()
         });
+        
         if (quiereWA) {
-            const msjWA = `*NUEVO PEDIDO IKU*%0A*Cliente:* ${cliente}%0A*Total:* $${total.toLocaleString()}`;
+            const msjWA = `*NUEVO PEDIDO IKU*%0A*Cliente:* ${cliente}%0A*Servicio:* ${tipo}%0A*Total:* $${total.toLocaleString()}`;
             window.open(`https://wa.me/573210000000?text=${msjWA}`);
         }
-        alert("¡Pedido enviado!");
-        carrito = []; actualizarCarrito(); window.toggleCart();
-    } catch (e) { console.error(e); }
+        
+        alert("¡Pedido enviado a la cocina!");
+        carrito = []; 
+        actualizarCarrito(); 
+        window.toggleCart();
+    } catch (e) { alert("Error al enviar: " + e.message); }
 };
 
+// Escucha de platos con filtrado estricto por categoría
 onSnapshot(query(collection(db, "platos"), orderBy("timestamp", "desc")), (sn) => {
-    const sections = { diario: document.getElementById('diario'), rapida: document.getElementById('rapida'), varios: document.getElementById('varios') };
+    const sections = { 
+        diario: document.getElementById('diario'), 
+        rapida: document.getElementById('rapida'), 
+        varios: document.getElementById('varios') 
+    };
+    
+    // Limpiar todas las secciones antes de re-dibujar
     Object.values(sections).forEach(s => { if(s) s.innerHTML = ''; });
     document.getElementById('loader').style.display = 'none';
 
@@ -93,11 +104,15 @@ onSnapshot(query(collection(db, "platos"), orderBy("timestamp", "desc")), (sn) =
                 </div>
                 <div class="expand-content">
                     ${ingHTML}
-                    <input type="text" id="note-${docSnap.id}" class="note-input" placeholder="¿Alguna nota especial?">
+                    <input type="text" id="note-${docSnap.id}" class="note-input" placeholder="¿Alguna nota especial (sin cebolla, etc)?">
                     <button class="btn-add-cart" onclick="agregarAlCarrito('${d.nombre}', '${d.precio}', '${docSnap.id}')">AÑADIR AL PEDIDO</button>
                 </div>
             </div>`;
-        if (sections[d.categoria]) sections[d.categoria].innerHTML += html;
+        
+        // FILTRADO ESTRICTO: Solo agrega si la categoría coincide exactamente con el ID de la sección
+        if (sections[d.categoria]) {
+            sections[d.categoria].innerHTML += html;
+        }
     });
 });
 
