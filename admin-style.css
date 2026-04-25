@@ -117,3 +117,55 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--s
     .nav-item.active { border-left: none; }
     .main-content { padding: 15px; }
 }
+/* --- NUEVO: Plano de Mesas --- */
+.mesas-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 20px;
+}
+
+.mesa-card {
+    background: var(--white);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.mesa-card:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+
+/* Estados de la mesa */
+.mesa-libre { border-color: var(--success); }
+.mesa-libre h3 { color: var(--success); }
+.mesa-ocupada { border-color: var(--accent); background-color: #fffbeb;}
+.mesa-ocupada h3 { color: #d97706; }
+
+/* --- NUEVO: Impresión Térmica (Tickets) --- */
+@media print {
+    body * { visibility: hidden; }
+    
+    #ticket-impresion, #ticket-impresion * {
+        visibility: visible;
+    }
+    
+    #ticket-impresion {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%; 
+        max-width: 80mm; /* Ancho estándar de impresora térmica */
+        margin: 0;
+        padding: 10px;
+        font-family: monospace;
+        font-size: 14px;
+        color: #000;
+        background: white;
+    }
+}
