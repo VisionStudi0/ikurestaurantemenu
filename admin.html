@@ -3,136 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IKU Admin | Control Total</title>
+    <title>IKU Admin | Master</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <style>
-        :root { --sidebar: #0f1115; --accent: #ffcc00; --bg: #f8fafc; --white: #ffffff; --success: #22c55e; --danger: #ef4444; --text: #334155; }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
-        body { background: var(--bg); display: flex; height: 100vh; overflow: hidden; color: var(--text); }
-        .sidebar { width: 260px; background: var(--sidebar); color: white; display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0; z-index: 100; }
-        .sidebar h2 { color: var(--accent); text-align: center; margin-bottom: 40px; letter-spacing: 4px; font-weight: 700; }
-        .nav-item { padding: 16px 28px; cursor: pointer; color: #94a3b8; transition: 0.3s; border-left: 4px solid transparent; display: flex; align-items: center; gap: 12px; }
-        .nav-item.active { background: #1e293b; color: white; border-left-color: var(--accent); }
-        .main-content { flex: 1; height: 100vh; overflow-y: auto; padding: 40px; scroll-behavior: smooth; }
-        .view-section { display: none; width: 100%; max-width: 1000px; margin: 0 auto; }
-        .view-section.active { display: block; }
-        
-        .pedido-card { background: white; padding: 25px; border-radius: 16px; border-left: 6px solid var(--accent); margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
-        .pedido-card.preparando { border-left-color: #3b82f6; } /* Color para estado en preparación */
-        
-        .item-nota { font-size: 0.85rem; color: #d63031; font-weight: 600; font-style: italic; background: #fff5f5; padding: 6px 12px; border-radius: 8px; display: block; margin-top: 8px; border-left: 3px solid #ff7675; }
-        .admin-group { margin-bottom: 12px; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; background: white; }
-        .admin-group-header { background: #fff; padding: 15px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-        .admin-group-content { display: none; border-top: 1px solid #f1f5f9; }
-        .admin-group.open .admin-group-content { display: block; }
-        .admin-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; }
-        .actions { display: flex; gap: 10px; align-items: center; }
-        .btn-icon { width: 36px; height: 36px; border-radius: 10px; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; background: #f8fafc; }
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 3000; backdrop-filter: blur(4px); }
-        .modal-card { background: white; padding: 35px; border-radius: 24px; width: 90%; max-width: 350px; text-align: center; }
-        input, select, textarea { width: 100%; padding: 14px; margin-bottom: 12px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; }
-        .btn-save { background: var(--sidebar); color: var(--accent); padding: 16px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; width: 100%; }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 30px; }
-        .stat-card { padding: 30px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
-        #login-screen { position: fixed; inset: 0; background: var(--sidebar); display: flex; align-items: center; justify-content: center; z-index: 2000; }
-        
-        .switch { position: relative; display: inline-block; width: 42px; height: 24px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; inset: 0; background-color: #cbd5e1; border-radius: 34px; transition: .4s; }
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: .4s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .switch input:checked + .slider { background-color: var(--success); }
-        .switch input:checked + .slider:before { transform: translateX(18px); }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body style="overflow: hidden;">
     <audio id="notif-sound" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3"></audio>
 
-    <div id="delete-modal" class="modal-overlay">
-        <div class="modal-card">
-            <h3 id="modal-title">¿Confirmar acción?</h3>
-            <div style="display:flex; gap:12px; margin-top:25px;">
-                <button onclick="closeModal()" style="flex:1; padding:12px; border-radius:12px; border:none; background:#f1f5f9; cursor:pointer; font-weight:600;">Cancelar</button>
-                <button id="confirm-delete-btn" style="flex:1; padding:12px; border-radius:12px; border:none; background:var(--danger); color:white; font-weight:700; cursor:pointer;">Confirmar</button>
+    <div id="delete-modal" class="modal-overlay" style="position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 5000;">
+        <div class="modal-card" style="background: white; padding: 30px; border-radius: 20px; text-align: center;">
+            <h3 id="modal-title">¿Confirmar?</h3>
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button onclick="closeModal()" style="flex:1; padding:10px; border-radius:10px; border:none; background:#eee;">No</button>
+                <button id="confirm-delete-btn" style="flex:1; padding:10px; border-radius:10px; border:none; background:#ef4444; color:white;">Sí</button>
             </div>
         </div>
     </div>
 
-    <div id="login-screen">
-        <div style="background:white; padding:50px; border-radius:24px; text-align:center;">
-            <h1>IKU</h1>
-            <button id="login-btn" style="background:#0f1115; color:#ffcc00; padding:15px 40px; border:none; border-radius:12px; cursor:pointer; margin-top:20px; font-weight:bold;">INGRESAR</button>
+    <div id="login-screen" style="position: fixed; inset: 0; background: #0f1115; display: flex; align-items: center; justify-content: center; z-index: 2000;">
+        <div style="background:white; padding:40px; border-radius:20px; text-align:center;">
+            <h1>IKU ADMIN</h1>
+            <button id="login-btn" style="background:#000; color:#ffcc00; padding:12px 30px; border:none; border-radius:10px; margin-top:20px; cursor:pointer;">INGRESAR</button>
         </div>
     </div>
 
-    <div id="admin-panel" style="display: none; width: 100vw; height: 100vh;">
-        <aside class="sidebar">
-            <h2>IKU</h2>
-            <div class="nav-item active" onclick="cambiarVista('v-pedidos', this)">🔔 Pedidos</div>
-            <div class="nav-item" onclick="cambiarVista('v-menu', this)">🍔 Inventario</div>
-            <div class="nav-item" onclick="cambiarVista('v-stats', this)">📊 Estadísticas</div>
+    <div id="admin-panel" style="display: none; width: 100vw; height: 100vh; background: #f8fafc;">
+        <aside class="sidebar" style="width: 260px; background: #0f1115; color: white; display: flex; flex-direction: column; padding: 20px 0;">
+            <h2 style="color:#ffcc00; text-align:center; margin-bottom:40px;">IKU</h2>
+            <div class="nav-item active" onclick="cambiarVista('v-pedidos', this)" style="padding: 15px 30px; cursor: pointer;">🔔 Pedidos</div>
+            <div class="nav-item" onclick="cambiarVista('v-menu', this)" style="padding: 15px 30px; cursor: pointer;">🍔 Inventario</div>
+            <div class="nav-item" onclick="cambiarVista('v-stats', this)" style="padding: 15px 30px; cursor: pointer;">📊 Estadísticas</div>
         </aside>
 
-        <main class="main-content">
+        <main class="main-content" style="flex: 1; height: 100vh; overflow-y: auto; padding: 40px;">
             <section id="v-pedidos" class="view-section active">
                 <div id="l-pendientes"></div>
-                
-                <div style="margin-top:40px;">
-                    <div class="admin-group">
-                        <div class="admin-group-header" onclick="toggleSeccion(this)">
-                            <h4 style="color:#94a3b8; font-size:0.8rem; margin:0;">✅ DESPACHADOS (HOY)</h4>
-                            <span style="font-size:0.7rem; color:#94a3b8;">▼</span>
-                        </div>
-                        <div class="admin-group-content" style="padding: 10px;">
-                            <div id="l-atendidos"></div>
-                        </div>
+                <div class="admin-group" id="g-despachados" style="margin-top:40px;">
+                    <div class="admin-group-header" onclick="toggleSeccion(this)" style="padding: 15px; cursor: pointer; border: 1px dashed #ccc;">
+                        <h4 style="color:#94a3b8; margin:0;">✅ DESPACHADOS (HOY)</h4>
                     </div>
+                    <div class="admin-group-content"><div id="l-atendidos"></div></div>
                 </div>
             </section>
 
             <section id="v-menu" class="view-section">
-                <div style="background:white; padding:35px; border-radius:20px; margin-bottom:30px; box-shadow:0 4px 15px rgba(0,0,0,0.03);">
+                <div style="background:white; padding:30px; border-radius:20px; margin-bottom:30px;">
                     <h3 id="f-title">➕ Gestionar Carta</h3>
                     <form id="m-form" style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
                         <input type="hidden" id="edit-id">
                         <input type="text" id="name" placeholder="Nombre" required>
                         <input type="number" id="price" placeholder="Precio ($)" required>
                         <select id="category"><option value="diario">Menú del Día</option><option value="rapida">Comidas Rápidas</option><option value="varios">Varios</option></select>
-                        <input type="number" id="stock" placeholder="Porciones Disp. (Ej: 20)" required>
+                        <input type="number" id="stock" placeholder="Stock Inicial" required>
+                        <textarea id="desc" placeholder="Descripción..." style="grid-column: span 2;"></textarea>
                         <input type="text" id="ingredients" placeholder="Ingredientes (con coma)" style="grid-column: span 2;">
-                        <textarea id="desc" placeholder="Descripción corta..." style="grid-column: span 2; height: 90px;"></textarea>
-                        <div style="grid-column: span 2; display:flex; gap:10px;">
-                            <button type="submit" class="btn-save" style="flex:2;">GUARDAR</button>
-                            <button type="button" onclick="cancelarEdicion()" style="flex:1; border-radius:12px; border:none; background:#f1f5f9; cursor:pointer; font-weight:600;">Cancelar</button>
-                        </div>
+                        <button type="submit" class="btn-save" style="grid-column: span 2; background:#000; color:#fc0; padding:15px; border:none; border-radius:10px; cursor:pointer;">GUARDAR</button>
                     </form>
                 </div>
                 <div id="inv-list"></div>
             </section>
 
             <section id="v-stats" class="view-section">
-                <div class="stats-grid">
-                    <div class="stat-card" style="background:var(--sidebar); color:var(--accent);"><p>VENTAS HOY</p><h2 id="s-hoy">$0</h2></div>
-                    <div class="stat-card" style="background:var(--success); color:white;"><p>VENTAS MES</p><h2 id="s-mes">$0</h2></div>
+                <div class="stats-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div class="stat-card" style="background:#0f1115; color:#fc0; padding:30px; border-radius:15px;">HOY<h2 id="s-hoy">$0</h2></div>
+                    <div class="stat-card" style="background:#22c55e; color:white; padding:30px; border-radius:15px;">MES<h2 id="s-mes">$0</h2></div>
                 </div>
-
-                <div style="background:white; padding:30px; border-radius:20px; margin-bottom:20px;">
-                    <h4 style="margin-bottom:15px; color:#334155;">🧾 Reporte Z Diario (Métodos de pago)</h4>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
-                        <div style="padding:15px; background:#f8fafc; border-radius:12px; border:1px solid #e2e8f0;"><p style="font-size:0.75rem; color:#64748b; font-weight:bold;">🟣 NEQUI</p><h3 id="s-nequi" style="font-size:1.2rem;">$0</h3></div>
-                        <div style="padding:15px; background:#f8fafc; border-radius:12px; border:1px solid #e2e8f0;"><p style="font-size:0.75rem; color:#64748b; font-weight:bold;">🟡 BANCOLOMBIA</p><h3 id="s-bancolombia" style="font-size:1.2rem;">$0</h3></div>
-                        <div style="padding:15px; background:#f8fafc; border-radius:12px; border:1px solid #e2e8f0;"><p style="font-size:0.75rem; color:#64748b; font-weight:bold;">💵 EFECTIVO</p><h3 id="s-efectivo" style="font-size:1.2rem;">$0</h3></div>
+                <div style="background:white; padding:20px; border-radius:15px; margin-bottom:20px;">
+                    <h4>🧾 Cierre por Métodos</h4>
+                    <div style="display:flex; gap:10px; margin-top:10px;">
+                        <div style="flex:1; background:#f8fafc; padding:10px; border-radius:10px;">🟣 Nequi: <strong id="s-nequi">$0</strong></div>
+                        <div style="flex:1; background:#f8fafc; padding:10px; border-radius:10px;">🟡 Banc.: <strong id="s-bancolombia">$0</strong></div>
+                        <div style="flex:1; background:#f8fafc; padding:10px; border-radius:10px;">💵 Efec.: <strong id="s-efectivo">$0</strong></div>
                     </div>
                 </div>
-
-                <div id="rankings-categoria" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:20px; background:white; padding:30px; border-radius:20px; margin-bottom:20px;"></div>
-                <div style="background:white; padding:30px; border-radius:20px;">
-                    <h4 style="margin-bottom:20px;">🛒 Alerta de Compras (Top Ingredientes)</h4>
-                    <div id="rankings-ingredientes" style="display:flex; flex-wrap:wrap; gap:12px;"></div>
-                </div>
-
-                <button id="btn-reset-stats" onclick="triggerResetStats()" style="display:none; width:100%; margin-top:30px; padding:20px; background:#fff0f0; color:var(--danger); border:2px dashed var(--danger); border-radius:16px; font-weight:bold; cursor:pointer; transition:0.3s;">
-                    ⚠️ REINICIAR TODAS LAS ESTADÍSTICAS
-                </button>
+                <div id="rankings-categoria" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:15px; margin-bottom:20px;"></div>
+                <div id="rankings-ingredientes" style="display:flex; flex-wrap:wrap; gap:10px; background:white; padding:20px; border-radius:15px;"></div>
+                <button id="btn-reset-stats" onclick="triggerResetStats()" style="display:none; width:100%; margin-top:20px; padding:15px; border:2px dashed #ef4444; color:#ef4444; background:none; cursor:pointer;">⚠️ CERRAR CAJA (Reiniciar Todo)</button>
             </section>
         </main>
     </div>
