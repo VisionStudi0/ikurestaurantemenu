@@ -59,20 +59,24 @@ window.quitar = (i) => { carrito.splice(i, 1); actualizarCarrito(); };
 window.enviarPedido = async () => {
     const cliente = document.getElementById('nombre-cliente')?.value;
     const tipo = document.getElementById('tipo-servicio')?.value;
-    if (!cliente || carrito.length === 0) return alert("Completa tus datos.");
+    const quiereWA = document.getElementById('check-whatsapp')?.checked;
+
+    if (!cliente || carrito.length === 0) return alert("Completa tus datos y añade platos.");
 
     const total = carrito.reduce((s, x) => s + x.precio, 0);
     try {
         await addDoc(collection(db, "pedidos"), {
             cliente, tipo, items: carrito, total, estado: "pendiente", timestamp: serverTimestamp()
         });
-        if (document.getElementById('check-whatsapp').checked) {
+        
+        if (quiereWA) {
             const msjWA = `*NUEVO PEDIDO IKU*%0A*Cliente:* ${cliente}%0A*Items:*%0A${carrito.map(i => `- ${i.nombre}`).join('%0A')}%0A*Total:* $${total.toLocaleString()}`;
-            window.open(`https://wa.me/573210000000?text=${msjWA}`);
+            window.open(`https://wa.me/573210000000?text=${msjWA}`); // Recuerda cambiar el número
         }
+        
         mostrarNotificacion("¡Pedido enviado! 🧑‍🍳");
         carrito = []; actualizarCarrito(); window.toggleCart();
-    } catch (e) { alert("Error"); }
+    } catch (e) { alert("Error al enviar el pedido."); }
 };
 
 onSnapshot(query(collection(db, "platos"), orderBy("timestamp", "desc")), (sn) => {
@@ -84,31 +88,22 @@ onSnapshot(query(collection(db, "platos"), orderBy("timestamp", "desc")), (sn) =
         const d = docSnap.data();
         if (d.disponible === false) return;
 
-        // LOGICA DE INGREDIENTES MEJORADA
         let listaIng = Array.isArray(d.ingredientes) ? d.ingredientes : (d.ingredientes ? d.ingredientes.split(',') : []);
         let ingHTML = '';
-        
-        // Solo creamos el contenedor si hay ingredientes reales
         if (listaIng.length > 0 && listaIng[0].trim() !== "") {
-            ingHTML = `
-                <div class="ing-container">
-                    ${listaIng.map(ing => ing.trim() ? `<span class="ing-pill">${ing.trim()}</span>` : '').join('')}
-                </div>`;
+            ingHTML = `<div class="ing-container">${listaIng.map(ing => ing.trim() ? `<span class="ing-pill">${ing.trim()}</span>` : '').join('')}</div>`;
         }
 
         const html = `
             <div class="dish-item">
                 <div class="dish-header" onclick="toggleDish(this)">
-                    <div>
-                        <h3>${d.nombre}</h3>
-                        <p class="dish-desc">${d.descripcion || ''}</p>
-                    </div>
+                    <div><h3>${d.nombre}</h3><p style="font-size:0.85rem; color:#777;">${d.descripcion || ''}</p></div>
                     <strong class="dish-price">$${Number(d.precio).toLocaleString()}</strong>
                 </div>
                 <div class="expand-content">
                     ${ingHTML}
-                    <input type="text" id="note-${docSnap.id}" class="note-input" placeholder="¿Nota especial? (Ej: sin cebolla)">
-                    <button class="btn-add-cart" onclick="agregarAlCarrito('${d.nombre}', '${d.precio}', '${docSnap.id}')">AÑADIR AL PEDIDO</button>
+                    <input type="text" id="note-${docSnap.id}" class="note-input" placeholder="¿Nota especial?">
+                    <button class="btn-add-cart" onclick="agregarAlCarrito('${d.nombre}', '${d.precio}', '${docSnap.id}')">AÑADIR</button>
                 </div>
             </div>`;
         if (sections[d.categoria]) sections[d.categoria].innerHTML += html;
