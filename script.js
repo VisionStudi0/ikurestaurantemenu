@@ -3,108 +3,78 @@ import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 
 
 let carrito = [];
 
-window.toggleCart = () => {
-    document.getElementById('cart-modal').classList.toggle('open');
-};
+window.toggleCart = () => document.getElementById('cart-modal').classList.toggle('open');
 
 window.agregarAlCarrito = (nombre, precio, id) => {
     const nota = document.getElementById(`note-${id}`).value;
-    const producto = {
-        nombre: nombre,
-        precio: parseInt(precio),
-        nota: nota
-    };
-    carrito.push(producto);
+    carrito.push({ nombre, precio: parseInt(precio), nota });
     document.getElementById(`note-${id}`).value = '';
-    actualizarInterfazCarrito();
+    actualizarCarrito();
+    alert(`¡${nombre} añadido!`);
 };
 
-function actualizarInterfazCarrito() {
-    const contenedor = document.getElementById('cart-items');
-    const badge = document.querySelector('.cart-count');
-    const totalLabel = document.getElementById('cart-total-price');
-    badge.innerText = carrito.length;
-    contenedor.innerHTML = '';
+function actualizarCarrito() {
+    const cont = document.getElementById('cart-items');
+    document.getElementById('cart-count').innerText = carrito.length;
+    cont.innerHTML = '';
     let total = 0;
-
-    carrito.forEach((item, index) => {
+    carrito.forEach((item, i) => {
         total += item.precio;
-        contenedor.innerHTML += `
-            <div class="cart-item">
-                <div style="display:flex; justify-content:space-between">
-                    <h4>${item.nombre}</h4>
-                    <span>$${item.precio}</span>
-                </div>
-                ${item.nota ? `<p class="cart-item-note">Nota: ${item.nota}</p>` : ''}
-                <button onclick="eliminarDelCarrito(${index})" style="background:none; border:none; color:red; font-size:0.7rem; cursor:pointer;">Quitar</button>
-            </div>
-        `;
+        cont.innerHTML += `<div style="border-bottom:1px solid #eee; padding:10px 0;">
+            <strong>${item.nombre}</strong> ($${item.precio})
+            <p style="font-size:0.8rem; color:#666">${item.nota}</p>
+            <button onclick="quitar(${i})" style="color:red; background:none; border:none; cursor:pointer;">Quitar</button>
+        </div>`;
     });
-
-    totalLabel.innerText = new Intl.NumberFormat('es-CO', {
-        style: 'currency', currency: 'COP', minimumFractionDigits: 0
-    }).format(total);
+    document.getElementById('cart-total-price').innerText = "$" + total;
 }
 
-window.eliminarDelCarrito = (index) => {
-    carrito.splice(index, 1);
-    actualizarInterfazCarrito();
-};
+window.quitar = (i) => { carrito.splice(i, 1); actualizarCarrito(); };
 
-// --- NUEVA FUNCIÓN: ENVIAR AL PANEL DE ADMIN ---
 window.enviarPedido = async () => {
-    const nombreCliente = prompt("Por favor, ingresa tu nombre o número de mesa:");
-    
-    if (!nombreCliente) return alert("Necesitamos un nombre para procesar el pedido.");
-    if (carrito.length === 0) return alert("El carrito está vacío.");
-
-    let total = carrito.reduce((sum, item) => sum + item.precio, 0);
-
+    const mesa = prompt("Ingresa tu Nombre o Número de Mesa:");
+    if (!mesa || carrito.length === 0) return;
     try {
         await addDoc(collection(db, "pedidos"), {
-            cliente: nombreCliente,
+            cliente: mesa,
             items: carrito,
-            total: total,
+            total: carrito.reduce((s, x) => s + x.precio, 0),
             estado: "pendiente",
             timestamp: serverTimestamp()
         });
-        
-        alert("¡Pedido enviado con éxito! En IKU ya estamos trabajando en él.");
+        alert("Pedido recibido en IKU.");
         carrito = [];
-        actualizarInterfazCarrito();
+        actualizarCarrito();
         toggleCart();
-    } catch (error) {
-        alert("Error al enviar el pedido: " + error.message);
-    }
+    } catch (e) { alert("Error al pedir."); }
 };
 
-// Renderizado del menú (se mantiene igual que antes)
-const renderMenu = () => {
-    const q = query(collection(db, "platos"), orderBy("timestamp", "desc"));
-    onSnapshot(q, (snapshot) => {
-        const categories = { diario: '', rapida: '', varios: '' };
-        document.getElementById('loader').style.display = 'none';
-        snapshot.docs.forEach(doc => {
-            const data = doc.data();
-            const id = doc.id;
-            const formattedPrice = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(data.precio);
-            const dishHTML = `
-                <div class="dish-item">
-                    <div class="dish-header" onclick="this.parentElement.classList.toggle('expanded')">
-                        <h3>${data.nombre}</h3>
-                        <span class="price">${formattedPrice}</span>
-                    </div>
-                    <div class="expand-content">
-                        <p class="description">${data.descripcion || ''}</p>
-                        <div class="order-controls">
-                            <input type="text" id="note-${id}" class="note-input" placeholder="Personaliza tu plato...">
-                            <button class="btn-add-cart" onclick="agregarAlCarrito('${data.nombre}', '${data.precio}', '${id}')">Agregar</button>
-                        </div>
-                    </div>
-                </div>`;
-            if (categories[data.categoria] !== undefined) categories[data.categoria] += dishHTML;
-        });
-        Object.keys(categories).forEach(cat => { document.getElementById(cat).innerHTML = categories[cat] || '<p>Próximamente...</p>'; });
+const q = query(collection(db, "platos"), orderBy("timestamp", "desc"));
+onSnapshot(q, (sn) => {
+    const cats = { diario: '', rapida: '', varios: '' };
+    document.getElementById('loader').style.display = 'none';
+    sn.docs.forEach(doc => {
+        const d = doc.data();
+        const html = `
+            <div class="dish-item" onclick="this.classList.toggle('expanded')">
+                <div class="dish-header"><h3>${d.nombre}</h3> <strong>$${d.precio}</strong></div>
+                <div class="expand-content">
+                    <p>${d.descripcion || ''}</p>
+                    <input type="text" id="note-${doc.id}" class="note-input" placeholder="Notas...">
+                    <button class="btn-add-cart" onclick="event.stopPropagation(); agregarAlCarrito('${d.nombre}', '${d.precio}', '${doc.id}')">PEDIR ESTE PLATO</button>
+                </div>
+            </div>`;
+        cats[d.categoria] += html;
     });
-};
-renderMenu();
+    ['diario','rapida','varios'].forEach(c => document.getElementById(c).innerHTML = cats[c] || '<p>Viene pronto...</p>');
+});
+
+// Lógica de Tabs
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.onclick = () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.menu-section').forEach(s => s.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.tab).classList.add('active');
+    };
+});
