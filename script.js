@@ -169,7 +169,7 @@ window.iniciarTracker = (id) => {
 
 // --- CARGA DINÁMICA DEL MENÚ (CORREGIDA) ---
 onSnapshot(query(collection(db, "platos"), orderBy("nombre", "asc")), (snap) => {
-    const categoriasIds = ['diario', 'desayuno', 'especial', 'asado', 'rapida', 'bebida'];
+    const categoriasIds = ['diario', 'almuerzo' , 'desayuno', 'especial', 'asado', 'rapida', 'bebida'];
     
     // 1. Limpieza total inmediata
     categoriasIds.forEach(id => {
