@@ -313,7 +313,64 @@ window.renderizarPlanoMesas = function(pedidos) {
     }
     grid.innerHTML = html;
 };
+// Agrega 'writeBatch' a tus imports de Firestore
+import { collection, onSnapshot, query, orderBy, doc, deleteDoc, updateDoc, getDoc, getDocs, serverTimestamp, addDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
+// ... (resto de imports igual)
 
+const CORREO_MASTER = "cb01grupo@gmail.com";
+const correosAutorizados = [CORREO_MASTER, "kelly.araujotafur@gmail.com"];
+
+// ... (iconos y login logic igual)
+
+onAuthStateChanged(auth, (u) => {
+    if(u && correosAutorizados.includes(u.email)) {
+        document.getElementById('admin-panel').style.display = 'flex';
+        document.getElementById('login-screen').style.display = 'none';
+        
+        // BLOQUEO DE SEGURIDAD: Solo Dagoberto ve el botón de reset
+        const superZone = document.getElementById('super-admin-zone');
+        if(superZone) {
+            superZone.style.display = (u.email === CORREO_MASTER) ? 'block' : 'none';
+        }
+
+        escucharCarta(); 
+        escucharPedidos(); 
+    } else {
+        if(u) signOut(auth);
+        document.getElementById('admin-panel').style.display = 'none';
+        document.getElementById('login-screen').style.display = 'flex';
+    }
+});
+
+// NUEVA FUNCIÓN: Reseteo Masivo de Pedidos
+window.resetearEstadisticas = async () => {
+    const confirmacion = confirm("¡ADVERTENCIA CRÍTICA!\n\nDagoberto, esta acción eliminará todos los pedidos históricos y de hoy de la base de datos. Las estadísticas volverán a $0 y no se puede deshacer.\n\n¿Deseas continuar?");
+    
+    if (confirmacion) {
+        try {
+            const q = query(collection(db, "pedidos"));
+            const querySnapshot = await getDocs(q);
+            
+            if (querySnapshot.empty) {
+                alert("No hay datos para eliminar.");
+                return;
+            }
+
+            const batch = writeBatch(db);
+            querySnapshot.forEach((doc) => {
+                batch.delete(doc.ref);
+            });
+
+            await batch.commit();
+            alert("Base de datos de pedidos limpiada con éxito. Las métricas se han reiniciado.");
+        } catch (error) {
+            console.error("Error al resetear métricas: ", error);
+            alert("Hubo un error al intentar limpiar los datos.");
+        }
+    }
+};
+
+// ... (el resto de tus funciones de escucharPedidos, métricas, etc., se mantienen iguales)
 window.imprimirComanda = function(pJsonStr) {
     const p = JSON.parse(decodeURIComponent(pJsonStr));
     const fecha = new Date().toLocaleString();
