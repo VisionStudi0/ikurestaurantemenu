@@ -5,10 +5,9 @@ import { GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from
 const correosAutorizados = ["cb01grupo@gmail.com", "kelly.araujotafur@gmail.com"];
 const formatPrice = (num) => Number(num).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
 
-let menuGlobal = {}; 
 let pedidosGlobales = [];
 
-// --- AUTENTICACIÓN ---
+// --- 1. AUTENTICACIÓN ---
 onAuthStateChanged(auth, (user) => {
     const loginScreen = document.getElementById('login-screen');
     const adminPanel = document.getElementById('admin-panel');
@@ -31,13 +30,16 @@ function iniciarAppAdmin() {
     escucharCarta();
 }
 
-// --- MONITOR DE PEDIDOS ---
+// --- 2. MONITOR DE PEDIDOS Y MÉTRICAS ---
 function escucharPedidos() {
     onSnapshot(query(collection(db, "pedidos"), orderBy("fecha", "desc")), (snapshot) => {
         pedidosGlobales = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         const listaActivos = document.getElementById('l-activos');
         const listaAtendidos = document.getElementById('l-atendidos');
-        listaActivos.innerHTML = ''; listaAtendidos.innerHTML = '';
+        
+        if(!listaActivos || !listaAtendidos) return;
+        listaActivos.innerHTML = ''; 
+        listaAtendidos.innerHTML = '';
 
         pedidosGlobales.forEach(p => {
             const card = document.createElement('div');
@@ -45,7 +47,7 @@ function escucharPedidos() {
             card.innerHTML = `
                 <div class="order-header">
                     <h4>${p.cliente} <span>(${p.tipo})</span></h4>
-                    <button onclick="window.imprimirComanda('${encodeURIComponent(JSON.stringify(p))}')" class="btn-print">🖨️ Comanda</button>
+                    <button onclick="window.imprimirComanda('${encodeURIComponent(JSON.stringify(p))}')" class="btn-print">🖨️ Ticket</button>
                 </div>
                 <div class="order-body">
                     ${p.items.map(i => `
@@ -53,81 +55,75 @@ function escucharPedidos() {
                         ${i.excluidos?.length > 0 ? `<br><small style="color:var(--danger)">❌ SIN: ${i.excluidos.join(', ')}</small>` : ''}</p>
                     `).join('')}
                     <hr>
-                    <p><strong>Total: ${formatPrice(p.total)}</strong></p>
+                    <p><strong>Total: ${formatPrice(p.total || 0)}</strong></p>
                 </div>
                 <div class="order-actions">
                     ${p.estado === 'recibido' ? `<button onclick="window.cambiarEstado('${p.id}', 'preparando')">Cocinar</button>` : ''}
                     ${p.estado === 'preparando' ? `<button onclick="window.cambiarEstado('${p.id}', 'listo')">Listo</button>` : ''}
                     ${p.estado !== 'entregado' ? `<button onclick="window.cambiarEstado('${p.id}', 'entregado')">Entregar</button>` : ''}
-                    <button class="btn-danger-outline" onclick="window.eliminarPedido('${p.id}')">🗑️</button>
+                    <button class="btn-danger" onclick="window.eliminarPedido('${p.id}')">🗑️</button>
                 </div>
             `;
             p.estado === 'entregado' ? listaAtendidos.appendChild(card) : listaActivos.appendChild(card);
         });
+        
         actualizarMétricas();
         renderizarPlanoMesas();
     });
 }
 
-// --- IMPRESIÓN DE COMANDA ---
+// --- 3. FUNCIÓN DE IMPRESIÓN ---
 window.imprimirComanda = (pJsonStr) => {
     const p = JSON.parse(decodeURIComponent(pJsonStr));
     const fecha = new Date().toLocaleString();
-    let ticket = `
-        <div id="ticket-impresion">
-            <h2 style="text-align:center">IKU RESTAURANTE</h2>
-            <p><strong>Cliente:</strong> ${p.cliente} | <strong>Tipo:</strong> ${p.tipo}</p>
-            <p><strong>Fecha:</strong> ${fecha}</p>
-            <hr>
-            ${p.items.map(i => `<p>1x <strong>${i.nombre}</strong> ${i.excluidos?.length > 0 ? `<br>- Sin: ${i.excluidos.join(', ')}` : ''}</p>`).join('')}
-            <hr>
-        </div>`;
-    
     const printWindow = window.open('', '', 'width=300,height=600');
-    printWindow.document.write(`<html><head><style>body{font-family:monospace;padding:10px}hr{border-top:1px dashed #000}</style></head><body>${ticket}</body></html>`);
+    printWindow.document.write(`
+        <html><head><style>
+            body { font-family: monospace; padding: 10px; font-size: 14px; }
+            h2 { text-align: center; margin-bottom: 5px; }
+            hr { border-top: 1px dashed #000; margin: 10px 0; }
+        </style></head>
+        <body>
+            <h2>IKU RESTAURANTE</h2>
+            <p>Cliente: ${p.cliente}</p>
+            <p>Fecha: ${fecha}</p>
+            <hr>
+            ${p.items.map(i => `<p>1x ${i.nombre} ${i.excluidos?.length > 0 ? '<br>- Sin: '+i.excluidos.join(', ') : ''}</p>`).join('')}
+            <hr>
+            <p style="text-align:right">Total: ${formatPrice(p.total)}</p>
+        </body></html>
+    `);
     printWindow.document.close();
     printWindow.print();
     printWindow.close();
 };
 
-// --- MÉTRICAS Y RANKINGS ---
+// --- 4. MÉTRICAS FINANCIERAS ---
 function actualizarMétricas() {
     let tHoy = 0, tMes = 0, pedidosHoy = 0, nq = 0, bc = 0, ef = 0;
-    const ventasPlatos = {};
-    const hoy = new Date();
+    const hoy = new Date().toDateString();
 
     pedidosGlobales.forEach(p => {
         if (!p.fecha) return;
         const f = p.fecha.toDate();
-        const esHoy = f.toDateString() === hoy.toDateString();
-
-        if (esHoy) {
-            tHoy += p.total;
+        if (f.toDateString() === hoy) {
+            tHoy += p.total || 0;
             pedidosHoy++;
             if (p.metodoPago === 'nequi') nq += p.total;
-            if (p.metodoPago === 'banco') bc += p.total;
-            if (p.metodoPago === 'efectivo') ef += p.total;
-
-            p.items.forEach(i => ventasPlatos[i.nombre] = (ventasPlatos[i.nombre] || 0) + 1);
+            else if (p.metodoPago === 'banco') bc += p.total;
+            else ef += p.total;
         }
-        if (f.getMonth() === hoy.getMonth()) tMes += p.total;
+        if (f.getMonth() === new Date().getMonth()) tMes += p.total || 0;
     });
 
-    document.getElementById('s-hoy').innerText = formatPrice(tHoy);
-    document.getElementById('s-mes').innerText = formatPrice(tMes);
-    document.getElementById('s-nequi').innerText = formatPrice(nq);
-    document.getElementById('s-bancolombia').innerText = formatPrice(bc);
-    document.getElementById('s-efectivo').innerText = formatPrice(ef);
-    document.getElementById('s-ticket-promedio').innerText = formatPrice(pedidosHoy > 0 ? tHoy / pedidosHoy : 0);
-
-    // Ranking de Platos
-    const rankingHTML = Object.entries(ventasPlatos)
-        .sort((a,b) => b[1] - a[1]).slice(0, 5)
-        .map(([name, qty]) => `<div class="rank-item"><span>${name}</span><strong>${qty}</strong></div>`).join('');
-    document.getElementById('rankings-categoria').innerHTML = rankingHTML;
+    if(document.getElementById('s-hoy')) document.getElementById('s-hoy').innerText = formatPrice(tHoy);
+    if(document.getElementById('s-mes')) document.getElementById('s-mes').innerText = formatPrice(tMes);
+    if(document.getElementById('s-nequi')) document.getElementById('s-nequi').innerText = formatPrice(nq);
+    if(document.getElementById('s-bancolombia')) document.getElementById('s-bancolombia').innerText = formatPrice(bc);
+    if(document.getElementById('s-efectivo')) document.getElementById('s-efectivo').innerText = formatPrice(ef);
 }
 
-// --- GESTIÓN DE MESAS ---
+// --- 5. PLANO DE MESAS ---
 function renderizarPlanoMesas() {
     const grid = document.getElementById('grid-mesas');
     if (!grid) return;
@@ -145,14 +141,14 @@ function renderizarPlanoMesas() {
     }
 }
 
-// --- CRUD DE CARTA ---
+// --- 6. GESTIÓN DE CARTA (EDITAR/ELIMINAR) ---
 function escucharCarta() {
     onSnapshot(collection(db, "menu"), (snapshot) => {
         const invList = document.getElementById('inv-list');
+        if(!invList) return;
         invList.innerHTML = '';
         snapshot.docs.forEach(docSnap => {
             const d = docSnap.data();
-            menuGlobal[d.nombre] = d.ingredientes || [];
             const item = document.createElement('div');
             item.className = 'item-carta';
             item.innerHTML = `
@@ -174,6 +170,7 @@ window.prepararEdicion = (id, dataStr) => {
     document.getElementById('p-precio').value = d.precio;
     document.getElementById('p-categoria').value = d.categoria;
     document.getElementById('p-desc').value = d.descripcion || '';
+    document.querySelector('.form-card h3').innerText = "Editando Plato";
 };
 
 window.guardarPlato = async () => {
@@ -182,15 +179,20 @@ window.guardarPlato = async () => {
         nombre: document.getElementById('p-nombre').value,
         precio: Number(document.getElementById('p-precio').value),
         categoria: document.getElementById('p-categoria').value,
-        descripcion: document.getElementById('p-desc').value,
-        fechaActualizacion: serverTimestamp()
+        descripcion: document.getElementById('p-desc').value
     };
 
-    if (id) await updateDoc(doc(db, "menu", id), plato);
-    else await addDoc(collection(db, "menu"), plato);
-    
-    document.getElementById('edit-id').value = '';
-    alert("Carta actualizada");
+    try {
+        if (id) await updateDoc(doc(db, "menu", id), plato);
+        else await addDoc(collection(db, "menu"), plato);
+        
+        // Limpiar
+        document.getElementById('edit-id').value = '';
+        document.getElementById('p-nombre').value = '';
+        document.getElementById('p-precio').value = '';
+        document.querySelector('.form-card h3').innerText = "Configurar Plato";
+        alert("Carta actualizada");
+    } catch(e) { console.error(e); }
 };
 
 window.cambiarEstado = (id, nuevoEstado) => updateDoc(doc(db, "pedidos", id), { estado: nuevoEstado });
