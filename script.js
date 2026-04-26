@@ -195,14 +195,27 @@ const sDiario = document.getElementById('diario');
 const sRapida = document.getElementById('rapida');
 const sVarios = document.getElementById('varios');
 
-onSnapshot(collection(db, "platos"), (snapshot) => {
-    const l = document.getElementById('loader');
-    if(l) l.style.display = 'none';
-    sDiario.innerHTML = ''; sRapida.innerHTML = ''; sVarios.innerHTML = '';
+onSnapshot(query(collection(db, "platos"), orderBy("nombre", "asc")), (snap) => {
+    // Definimos todos los IDs de las secciones
+    const categoriasIds = ['diario', 'desayuno', 'especial', 'asado', 'rapida', 'bebida'];
     
-    snapshot.docs.forEach(docSnap => {
+    // Limpiamos todas las secciones antes de recargar
+    categoriasIds.forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.innerHTML = '';
+    });
+
+    document.getElementById('loader').style.display = 'none';
+
+    snap.forEach(docSnap => {
         const d = docSnap.data();
-        if(d.disponible === false) return;
+        // ... (aquí va tu código actual que genera la variable 'html') ...
+        
+        // Insertamos el plato en su sección correspondiente según d.categoria
+        const container = document.getElementById(d.categoria);
+        if(container) container.innerHTML += html;
+    });
+});
 
         let ingredientesHTML = '';
         if (d.ingredientes && d.ingredientes.length > 0) {
