@@ -57,19 +57,22 @@ function escucharPedidos() {
                     <button onclick="imprimirComanda('${encodeURIComponent(JSON.stringify(p))}')" style="background:#3b82f6; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size: 0.8rem;">🖨️ Imprimir</button>
                 </div>
                 <div style="margin-bottom:15px; padding-left: 10px; border-left: 2px solid var(--border);">
-                    ${p.items.map(i => `<div style="font-size:0.9rem; margin-bottom:4px;">• 1x ${i.nombre} ${i.nota ? `<span style="color:#eab308; font-size:0.8rem;">(${i.nota})</span>` : ''}</div>`).join('')}
+                    ${p.items.map(i => `
+                        <div style="font-size:0.9rem; margin-bottom:4px;">
+                            • 1x ${i.nombre} 
+                            ${i.excluidos && i.excluidos.length > 0 ? `<span style="color:var(--danger); font-size:0.8rem;">(Sin: ${i.excluidos.join(', ')})</span>` : ''}
+                        </div>
+                    `).join('')}
                 </div>
                 
                 <div class="acciones-pedido" style="margin-top:10px;">
                     ${p.estado === 'pendiente' ? 
-                        `<button onclick="actualizarEstado('${p.id}', 'preparando')" class="btn-estado btn-preparar">
-                            🍳 Iniciar Preparación
-                        </button>` : ''
+                        `<button onclick="actualizarEstado('${p.id}', 'preparando')" class="btn-estado btn-preparar">🍳 Iniciar Preparación</button>` : ''
                     }
                     
                     ${p.estado === 'preparando' ? 
                         `<div style="width: 100%;">
-                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; text-align: center;">Completar y cobrar con:</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; text-align: center;">Cobrar con:</div>
                             <div style="display:flex; gap:8px;">
                                 <button onclick="cerrarPedido('${p.id}', 'nequi')" class="btn-pago nequi">Nequi</button>
                                 <button onclick="cerrarPedido('${p.id}', 'banco')" class="btn-pago banco">Banco</button>
@@ -80,14 +83,11 @@ function escucharPedidos() {
 
                     ${p.estado === 'listo' ? 
                         `<div style="display:flex; justify-content:space-between; align-items:center; background: #f0fdf4; padding: 8px 12px; border-radius: 8px; border: 1px dashed var(--success);">
-                            <div style="display:flex; align-items:center; gap: 8px;">
-                                <span style="font-size: 1rem;">✅</span>
-                                <select onchange="cambiarPago('${p.id}', this.value)" style="margin: 0; padding: 4px 8px; font-size: 0.85rem; font-weight: 600; color: var(--success); border: 1px solid #bbf7d0; border-radius: 6px; background: white; cursor: pointer;">
-                                    <option value="nequi" ${p.metodoPago === 'nequi' ? 'selected' : ''}>Nequi</option>
-                                    <option value="banco" ${p.metodoPago === 'banco' ? 'selected' : ''}>Banco</option>
-                                    <option value="efectivo" ${p.metodoPago === 'efectivo' ? 'selected' : ''}>Efectivo</option>
-                                </select>
-                            </div>
+                            <select onchange="cambiarPago('${p.id}', this.value)" style="margin: 0; width: auto; padding: 4px 8px; font-size: 0.85rem; font-weight: 600; color: var(--success); border: 1px solid #bbf7d0; border-radius: 6px; background: white; cursor: pointer;">
+                                <option value="nequi" ${p.metodoPago === 'nequi' ? 'selected' : ''}>Nequi</option>
+                                <option value="banco" ${p.metodoPago === 'banco' ? 'selected' : ''}>Banco</option>
+                                <option value="efectivo" ${p.metodoPago === 'efectivo' ? 'selected' : ''}>Efectivo</option>
+                            </select>
                             <button onclick="revertirPedido('${p.id}')" style="background:none; border:none; color:var(--text-muted); font-size:0.75rem; cursor:pointer; text-decoration:underline;">Revertir</button>
                         </div>` : ''
                     }
@@ -104,12 +104,12 @@ function escucharPedidos() {
 }
 
 function actualizarMétricas() {
-    let tHoy = 0, tMes = 0, pedidosHoy = 0;
+    let tHoy = 0, tMes = 0, pedidosHoyCount = 0;
     let tNequi = 0, tBanco = 0, tEfectivo = 0;
     
     const ventasPlatos = {};
-    const usoIngredientes = {};       // Ingredientes consumidos
-    const ingredientesRechazados = {}; // Ingredientes tachados por el cliente
+    const usoIngredientes = {};       // Lo que SÍ se gastó
+    const ingredientesRechazados = {}; // Lo que el cliente QUITÓ
     
     const hoy = new Date();
 
@@ -120,85 +120,67 @@ function actualizarMétricas() {
                           f.getMonth() === hoy.getMonth() && 
                           f.getFullYear() === hoy.getFullYear();
 
-            // Análisis diario
             if(esHoy) {
                 tHoy += Number(p.total);
-                pedidosHoy++;
-                
+                pedidosHoyCount++;
                 if(p.metodoPago === 'nequi') tNequi += Number(p.total);
                 if(p.metodoPago === 'banco') tBanco += Number(p.total);
                 if(p.metodoPago === 'efectivo') tEfectivo += Number(p.total);
 
                 p.items.forEach(item => {
-                    // Contar plato vendido
                     ventasPlatos[item.nombre] = (ventasPlatos[item.nombre] || 0) + 1;
                     
-                    // Lógica inteligente de ingredientes
                     const ingredientesBase = menuGlobal[item.nombre] || [];
                     const excluidosPorCliente = item.excluidos || [];
 
                     ingredientesBase.forEach(ing => {
                         if (excluidosPorCliente.includes(ing)) {
-                            // Sumar a la lista de "No me gusta"
                             ingredientesRechazados[ing] = (ingredientesRechazados[ing] || 0) + 1;
                         } else {
-                            // Sumar a la rotación real de la cocina
                             usoIngredientes[ing] = (usoIngredientes[ing] || 0) + 1;
                         }
                     });
                 });
             }
 
-            // Análisis mensual
             if(f.getMonth() === hoy.getMonth() && f.getFullYear() === hoy.getFullYear()) {
                 tMes += Number(p.total);
             }
         }
     });
 
-    const ticketPromedio = pedidosHoy > 0 ? tHoy / pedidosHoy : 0;
+    const ticketPromedio = pedidosHoyCount > 0 ? tHoy / pedidosHoyCount : 0;
 
-    // --- ACTUALIZACIÓN DE INTERFAZ ---
-
-    // Valores numéricos
-    const safeSetText = (id, text) => { if(document.getElementById(id)) document.getElementById(id).innerText = text; };
+    // Actualizar Interfaz
+    const setUI = (id, val) => { if(document.getElementById(id)) document.getElementById(id).innerText = val; };
     
-    safeSetText('s-hoy', `$${tHoy.toLocaleString()}`);
-    safeSetText('s-mes', `$${tMes.toLocaleString()}`);
-    safeSetText('s-pedidos-total', pedidosHoy);
-    safeSetText('s-ticket-promedio', `$${Math.round(ticketPromedio).toLocaleString()}`);
-    safeSetText('s-nequi', `$${tNequi.toLocaleString()}`);
-    safeSetText('s-bancolombia', `$${tBanco.toLocaleString()}`);
-    safeSetText('s-efectivo', `$${tEfectivo.toLocaleString()}`);
+    setUI('s-hoy', `$${tHoy.toLocaleString()}`);
+    setUI('s-mes', `$${tMes.toLocaleString()}`);
+    setUI('s-pedidos-total', pedidosHoyCount);
+    setUI('s-ticket-promedio', `$${Math.round(ticketPromedio).toLocaleString()}`);
+    setUI('s-nequi', `$${tNequi.toLocaleString()}`);
+    setUI('s-bancolombia', `$${tBanco.toLocaleString()}`);
+    setUI('s-efectivo', `$${tEfectivo.toLocaleString()}`);
 
-    // Rankings de Platos
-    const rankPlatos = document.getElementById('rankings-categoria');
-    if(rankPlatos) {
-        rankPlatos.innerHTML = Object.entries(ventasPlatos)
+    if(document.getElementById('rankings-categoria')) {
+        document.getElementById('rankings-categoria').innerHTML = Object.entries(ventasPlatos)
             .sort((a,b) => b[1] - a[1]).slice(0,5)
-            .map(([n,v]) => `
-                <div style="padding:10px; background:#f9fafb; border-radius:8px; border:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-size:0.9rem;">${n}</span>
-                    <strong style="color:var(--sidebar);">${v}</strong>
-                </div>`).join('') || "Sin ventas hoy";
+            .map(([n,v]) => `<div style="padding:10px; background:#f9fafb; border-radius:8px; border:1px solid #eee; display:flex; justify-content:space-between;"><span>${n}</span> <strong>${v}</strong></div>`).join('') || "Sin ventas";
     }
 
-    // Rankings de Despensa (Usados ✅)
-    const rankIng = document.getElementById('rankings-ingredientes');
-    if(rankIng) {
-        rankIng.innerHTML = Object.entries(usoIngredientes)
+    if(document.getElementById('rankings-ingredientes')) {
+        document.getElementById('rankings-ingredientes').innerHTML = Object.entries(usoIngredientes)
             .sort((a,b) => b[1] - a[1])
             .map(([n,v]) => `<span style="background:var(--success); color:white; padding:4px 10px; border-radius:20px; font-size:0.75rem;">${n} (${v})</span>`).join('') || "Sin datos";
     }
 
-    // Rankings de Rechazados (Quitados ❌)
-    const rankRech = document.getElementById('rankings-rechazados');
-    if(rankRech) {
-        rankRech.innerHTML = Object.entries(ingredientesRechazados)
+    if(document.getElementById('rankings-rechazados')) {
+        document.getElementById('rankings-rechazados').innerHTML = Object.entries(ingredientesRechazados)
             .sort((a,b) => b[1] - a[1])
-            .map(([n,v]) => `<span style="background:var(--danger); color:white; padding:4px 10px; border-radius:20px; font-size:0.75rem;">${n} (${v})</span>`).join('') || "Sin ingredientes rechazados";
+            .map(([n,v]) => `<span style="background:var(--danger); color:white; padding:4px 10px; border-radius:20px; font-size:0.75rem;">${n} (${v})</span>`).join('') || "Sin rechazos";
     }
 }
+
 // --- FUNCIONES DE ESTADO ---
 window.actualizarEstado = async (id, estado) => await updateDoc(doc(db, "pedidos", id), { estado });
 window.cerrarPedido = async (id, metodoPago) => await updateDoc(doc(db, "pedidos", id), { estado: 'listo', metodoPago: metodoPago });
@@ -374,7 +356,7 @@ window.imprimirComanda = function(pJsonStr) {
             <p><strong>Fecha:</strong> ${fecha}</p>
             <hr style="border-top:1px dashed #000; margin:10px 0;">
             <ul style="list-style:none; padding:0;">
-                ${p.items.map(i => `<li style="margin-bottom:8px;"><strong>1x ${i.nombre}</strong> ${i.nota ? `<br><small>- ${i.nota}</small>` : ''}</li>`).join('')}
+                ${p.items.map(i => `<li style="margin-bottom:8px;"><strong>1x ${i.nombre}</strong> ${i.excluidos && i.excluidos.length > 0 ? `<br><small>- Sin: ${i.excluidos.join(', ')}</small>` : ''}</li>`).join('')}
             </ul>
             <hr style="border-top:1px dashed #000; margin:10px 0;">
             <h3 style="text-align:right;">Total: $${Number(p.total).toLocaleString()}</h3>
