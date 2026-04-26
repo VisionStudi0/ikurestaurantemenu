@@ -73,29 +73,32 @@
                         <div id="inv-list"></div>
                     </div>
                     <div class="carta-form-container">
-                        <div class="form-card">
-                            <h3>Configurar Plato</h3>
-                            <div class="form-group">
-                                <input type="hidden" id="edit-id"> 
-                                <input type="text" id="p-nombre" placeholder="Nombre del plato">
-                                <div class="form-row">
-                                    <input type="number" id="p-precio" placeholder="Precio">
-                                    <select id="p-categoria">
-                                        <option value="diario">Menú del Día</option>
-                                        <option value="desayuno">Desayunos</option>
-                                        <option value="especial">Especiales</option>
-                                        <option value="asado">Asados</option>
-                                        <option value="rapida">Comida Rápida</option>
-                                        <option value="bebida">Bebidas</option>
-                                    </select>
-                                </div>
-                                <textarea id="p-desc" placeholder="Descripción breve"></textarea>
-                                <button onclick="window.guardarPlato()" class="btn-primary">Guardar Plato</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+                      <div class="form-card">
+    <h3>Configurar Plato</h3>
+    <div class="form-group">
+        <input type="hidden" id="edit-id"> 
+        <input type="text" id="p-nombre" placeholder="Nombre del plato">
+        <div class="form-row">
+            <input type="number" id="p-precio" placeholder="Precio">
+            <select id="p-categoria">
+                <option value="diario">Menú del Día</option>
+                <option value="desayuno">Desayunos</option>
+                <option value="especial">Especiales</option>
+                <option value="asado">Asados</option>
+                <option value="rapida">Comida Rápida</option>
+                <option value="bebida">Bebidas</option>
+            </select>
+        </div>
+        <textarea id="p-desc" placeholder="Descripción breve"></textarea>
+        <button onclick="window.guardarPlato()" class="btn-primary">Guardar Plato</button>
+    </div>
+</div>
+
+<section id="v-mesas" class="view-section">
+    <h3>Plano de Mesas</h3>
+    <div id="grid-mesas" class="mesas-container">
+        </div>
+</section>
 
             <section id="v-mesas" class="view-section">
                 <h3>Plano de Mesas</h3>
