@@ -143,3 +143,25 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         if (section) section.classList.add('active');
     };
 });
+// Añade esto al final de tu script.js
+
+// 1. Cerrar carrito al hacer clic fuera (en el área oscura)
+window.onclick = function(event) {
+    const modal = document.getElementById('cart-modal');
+    // Si el clic es exactamente en el overlay oscuro y no en sus hijos
+    if (event.target === modal) {
+        window.cerrarCarrito();
+    }
+};
+
+// 2. Mejorar la función cerrarCarrito para que sea fluida
+window.cerrarCarrito = () => {
+    const modal = document.getElementById('cart-modal');
+    modal.classList.remove('active');
+};
+
+// 3. Asegurar que abrirCarrito funcione con la clase CSS
+window.abrirCarrito = () => {
+    const modal = document.getElementById('cart-modal');
+    modal.classList.add('active');
+};
