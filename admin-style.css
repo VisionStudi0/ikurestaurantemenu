@@ -77,7 +77,56 @@ input, select, textarea { width: 100%; padding: 12px; border: 1px solid var(--bo
         margin: 0; padding: 10px; font-family: monospace; font-size: 14px; color: #000; background: white;
     }
 }
+/* Estilo para el contenedor de la categoría */
+.categoria-header {
+    background: var(--white);
+    border: 1px solid var(--border);
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+    user-select: none;
+}
 
+.categoria-header:hover {
+    background: #f8fafc; /* Un gris muy ligero */
+    border-color: var(--sidebar);
+    transform: translateY(-1px);
+}
+
+.categoria-header h4 {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--sidebar);
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+/* El badge que cuenta cuántos platos hay */
+.count-badge {
+    background: #e2e8f0;
+    color: #475569;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    margin-left: 10px;
+}
+
+/* Ajuste para que la lista interna se vea indentada */
+.lista-categoria {
+    padding-left: 10px;
+    border-left: 2px solid #f1f5f9;
+    margin-bottom: 15px;
+    transition: max-height 0.3s ease-out;
+}
+
+.lista-categoria-oculta {
+    display: none;
+}
 /* =========================================
    DISEÑO RESPONSIVE (BARRA ARRIBA)
    ========================================= */
