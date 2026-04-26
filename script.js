@@ -4,14 +4,16 @@ import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 
 let carrito = [];
 const formatPrice = (num) => Number(num).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
 
-// Utilidad para reproducir sonidos
 const playSound = (url) => {
     const audio = new Audio(url);
-    audio.play().catch(() => {}); // Evita errores de políticas de autotransproducción
+    audio.play().catch(() => {}); 
 };
 
+// --- FUNCIONES DE NAVEGACIÓN (Ubicadas fuera para evitar errores de scope) ---
+window.abrirCarrito = () => document.getElementById('cart-modal').classList.add('active');
+window.cerrarCarrito = () => document.getElementById('cart-modal').classList.remove('active');
+
 document.addEventListener("DOMContentLoaded", () => {
-    // 1. Manejo de Parámetros de Mesa
     const params = new URLSearchParams(window.location.search);
     const mesa = params.get('mesa');
     if (mesa) {
@@ -23,15 +25,15 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // 2. Carga de Menú en Tiempo Real
+    // Carga de Menú
     onSnapshot(query(collection(db, "menu"), orderBy("nombre")), (snapshot) => {
-        // Limpiar contenedores
         document.querySelectorAll('.menu-section').forEach(s => s.innerHTML = '');
         
         snapshot.docs.forEach(docSnap => {
             const d = docSnap.data();
             const id = docSnap.id;
-            const container = document.getElementById(d.categoria);
+            // Normalizamos el ID para evitar fallos por mayúsculas
+            const container = document.getElementById(d.categoria.toLowerCase());
             if (!container) return;
 
             const card = document.createElement('div');
@@ -60,15 +62,17 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-// --- FUNCIONES GLOBALES ---
 window.ajustarCant = (id, delta) => {
     const el = document.getElementById(`cant-${id}`);
-    let v = parseInt(el.innerText) + delta;
-    if (v >= 1) el.innerText = v;
+    if (el) {
+        let v = parseInt(el.innerText) + delta;
+        if (v >= 1) el.innerText = v;
+    }
 };
 
 window.agregarAlCarrito = (nombre, precio, id) => {
-    const cant = parseInt(document.getElementById(`cant-${id}`).innerText);
+    const cantEl = document.getElementById(`cant-${id}`);
+    const cant = cantEl ? parseInt(cantEl.innerText) : 1;
     carrito.push({ nombre, precio, cantidad: cant, id_prod: id });
     playSound('https://assets.mixkit.co/sfx/preview/mixkit-bubble-pop-up-alert-2358.mp3');
     actualizarCarritoUI();
@@ -79,6 +83,8 @@ function actualizarCarritoUI() {
     const totalEl = document.getElementById('cart-total-price');
     const badge = document.querySelector('.cart-count');
     
+    if (!lista || !totalEl) return;
+
     lista.innerHTML = '';
     let total = 0;
 
@@ -97,7 +103,7 @@ function actualizarCarritoUI() {
     });
 
     totalEl.innerText = formatPrice(total);
-    badge.innerText = carrito.length;
+    if (badge) badge.innerText = carrito.length;
 }
 
 window.quitarDelCarrito = (index) => {
@@ -124,11 +130,11 @@ window.enviarPedido = async () => {
         actualizarCarritoUI();
         window.cerrarCarrito();
     } catch (e) {
-        console.error(e);
+        console.error("Error al enviar:", e);
     }
 };
 
-// --- NAVEGACIÓN ---
+// Navegación de pestañas
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.onclick = () => {
         document.querySelectorAll('.tab-btn, .menu-section').forEach(el => el.classList.remove('active'));
