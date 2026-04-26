@@ -79,12 +79,14 @@
                                 <input type="text" id="name" placeholder="Nombre del plato" required>
                                 <div style="display: flex; gap: 16px;">
                                     <input type="number" id="price" placeholder="Precio" required style="flex: 1;">
-                                    <select id="category" required style="flex: 1;">
-                                        <option value="" disabled selected>Categoría...</option>
-                                        <option value="diario">Menú del Día</option>
-                                        <option value="rapida">Comidas Rápidas</option>
-                                        <option value="varios">Varios</option>
-                                    </select>
+                                   <select id="category" class="form-input" required>
+    <option value="diario">Menú del Día</option>
+    <option value="desayuno">Desayunos</option>
+    <option value="especial">Especiales</option>
+    <option value="asado">Asados</option>
+    <option value="rapida">Comida Rápida</option>
+    <option value="bebida">Bebidas</option>
+</select>
                                 </div>
                                 <textarea id="desc" placeholder="Descripción breve" style="height: 70px;"></textarea>
                                 <input type="text" id="ingredients" placeholder="Ingredientes (separados por coma)">
