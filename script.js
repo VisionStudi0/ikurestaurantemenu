@@ -9,11 +9,19 @@ const playSound = (url) => {
     audio.play().catch(() => {}); 
 };
 
-// --- FUNCIONES DE NAVEGACIÓN (Ubicadas fuera para evitar errores de scope) ---
-window.abrirCarrito = () => document.getElementById('cart-modal').classList.add('active');
-window.cerrarCarrito = () => document.getElementById('cart-modal').classList.remove('active');
+// --- NAVEGACIÓN GLOBAL ---
+window.abrirCarrito = () => {
+    const modal = document.getElementById('cart-modal');
+    if (modal) modal.classList.add('active');
+};
+
+window.cerrarCarrito = () => {
+    const modal = document.getElementById('cart-modal');
+    if (modal) modal.classList.remove('active');
+};
 
 document.addEventListener("DOMContentLoaded", () => {
+    // 1. Detectar Mesa por URL
     const params = new URLSearchParams(window.location.search);
     const mesa = params.get('mesa');
     if (mesa) {
@@ -25,14 +33,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // Carga de Menú
+    // 2. Carga de Menú en Tiempo Real
     onSnapshot(query(collection(db, "menu"), orderBy("nombre")), (snapshot) => {
         document.querySelectorAll('.menu-section').forEach(s => s.innerHTML = '');
         
         snapshot.docs.forEach(docSnap => {
             const d = docSnap.data();
             const id = docSnap.id;
-            // Normalizamos el ID para evitar fallos por mayúsculas
             const container = document.getElementById(d.categoria.toLowerCase());
             if (!container) return;
 
@@ -60,8 +67,19 @@ document.addEventListener("DOMContentLoaded", () => {
             container.appendChild(card);
         });
     });
+
+    // 3. Detector de clic fuera del carrito (Consolidado)
+    const modalCarrito = document.getElementById('cart-modal');
+    if (modalCarrito) {
+        modalCarrito.addEventListener('click', (e) => {
+            if (e.target === modalCarrito) {
+                window.cerrarCarrito();
+            }
+        });
+    }
 });
 
+// --- LÓGICA DEL CARRITO ---
 window.ajustarCant = (id, delta) => {
     const el = document.getElementById(`cant-${id}`);
     if (el) {
@@ -84,7 +102,6 @@ function actualizarCarritoUI() {
     const badge = document.querySelector('.cart-count');
     
     if (!lista || !totalEl) return;
-
     lista.innerHTML = '';
     let total = 0;
 
@@ -143,35 +160,3 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         if (section) section.classList.add('active');
     };
 });
-// Añade esto al final de tu script.js
-
-// 1. Cerrar carrito al hacer clic fuera (en el área oscura)
-window.onclick = function(event) {
-    const modal = document.getElementById('cart-modal');
-    // Si el clic es exactamente en el overlay oscuro y no en sus hijos
-    if (event.target === modal) {
-        window.cerrarCarrito();
-    }
-};
-
-// 2. Mejorar la función cerrarCarrito para que sea fluida
-window.cerrarCarrito = () => {
-    const modal = document.getElementById('cart-modal');
-    modal.classList.remove('active');
-};
-
-// 3. Asegurar que abrirCarrito funcione con la clase CSS
-window.abrirCarrito = () => {
-    const modal = document.getElementById('cart-modal');
-    modal.classList.add('active');
-};
-// Detectar clic en el fondo oscuro para cerrar
-const modalCarrito = document.getElementById('cart-modal');
-if (modalCarrito) {
-    modalCarrito.addEventListener('click', (e) => {
-        // Si el clic fue en el fondo (el modal) y no en el contenido blanco
-        if (e.target === modalCarrito) {
-            window.cerrarCarrito();
-        }
-    });
-}
