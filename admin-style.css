@@ -155,3 +155,44 @@ input, select, textarea { width: 100%; padding: 12px; border: 1px solid var(--bo
     
     .stat-card { padding: 15px; }
 }
+/* admin-style.css */
+
+@media (max-width: 900px) {
+    #admin-panel {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        height: auto;
+        padding: 10px;
+        flex-direction: row;
+        justify-content: space-around;
+        position: sticky;
+        top: 0;
+    }
+
+    .sidebar h2 { display: none; } /* Ocultar logo en móvil para ganar espacio */
+
+    .nav-item {
+        padding: 10px;
+        font-size: 0.8rem;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .main-content {
+        padding: 10px;
+    }
+
+    /* Las tarjetas de pedidos ocuparán el 100% en móvil */
+    .view-section.active {
+        display: block;
+    }
+
+    .orders-grid {
+        display: grid;
+        grid-template-columns: 1fr; /* Una sola columna en móvil */
+        gap: 15px;
+    }
+}
