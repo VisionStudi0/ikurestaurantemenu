@@ -273,10 +273,29 @@ window.eliminarPlatoModal = (id) => {
     document.getElementById('delete-modal').style.display = 'flex';
 };
 
+// --- FUNCIÓN EXCLUSIVA MASTER ---
+window.confirmarReinicioTotal = () => {
+    if (auth.currentUser.email !== CORREO_MASTER) return;
+    idParaEliminar = "REINICIO_TOTAL"; 
+    document.getElementById('modal-title').innerHTML = `<span style="color:var(--danger)">¿ESTÁS SEGURO?</span><br>Se borrarán todos los pedidos y las métricas volverán a cero.`;
+    document.getElementById('delete-modal').style.display = 'flex';
+};
+
+// UN SOLO EVENTO PARA EL BOTÓN (Aquí estaba el error)
 const btnConfirmarEliminar = document.getElementById('confirm-delete-btn');
 if (btnConfirmarEliminar) {
     btnConfirmarEliminar.onclick = async () => {
-        if (idParaEliminar) {
+        if (idParaEliminar === "REINICIO_TOTAL") {
+            try {
+                const promesas = pedidosGlobales.map(p => deleteDoc(doc(db, "pedidos", p.id)));
+                await Promise.all(promesas);
+                alert("Métricas reiniciadas con éxito.");
+            } catch (e) {
+                console.error("Error al reiniciar:", e);
+            }
+            document.getElementById('delete-modal').style.display = 'none';
+            idParaEliminar = null;
+        } else if (idParaEliminar) {
             await deleteDoc(doc(db, "platos", idParaEliminar));
             idParaEliminar = null;
             document.getElementById('delete-modal').style.display = 'none';
