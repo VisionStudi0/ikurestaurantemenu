@@ -5,6 +5,7 @@ import { GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from
 const CORREO_MASTER = "cb01grupo@gmail.com";
 const correosAutorizados = [CORREO_MASTER, "kelly.araujotafur@gmail.com"];
 
+// Iconos Minimalistas
 const ICON_PREPARE = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>`;
 const ICON_X = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
 const ICON_EDIT = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
@@ -33,7 +34,9 @@ onAuthStateChanged(auth, (u) => {
 
 let menuGlobal = {};
 let pedidosGlobales = [];
+let idParaEliminar = null; // Variable única para todos los modales
 
+// --- LÓGICA DE PEDIDOS ---
 function escucharPedidos() {
     const q = query(collection(db, "pedidos"), orderBy("timestamp", "desc"));
     onSnapshot(q, (snapshot) => {
@@ -151,24 +154,57 @@ function actualizarMétricas() {
                 </div>
             </div>`;
     }
-
-    if(document.getElementById('rankings-categoria')) {
-        document.getElementById('rankings-categoria').innerHTML = Object.entries(ventasPlatos)
-            .sort((a,b) => b[1] - a[1]).slice(0,5)
-            .map(([n,v]) => `<div style="padding:10px; background:#f9fafb; border-radius:8px; border:1px solid #eee; display:flex; justify-content:space-between;"><span>${n}</span> <strong>${v}</strong></div>`).join('') || "Sin ventas hoy";
-    }
 }
 
+// --- FUNCIONES DE ESTADO Y MODALES ---
 window.actualizarEstado = async (id, estado) => await updateDoc(doc(db, "pedidos", id), { estado });
 window.cerrarPedido = async (id, metodoPago) => await updateDoc(doc(db, "pedidos", id), { estado: 'listo', metodoPago: metodoPago });
 window.revertirPedido = async (id) => await updateDoc(doc(db, "pedidos", id), { estado: 'preparando', metodoPago: null });
-window.rechazarPedido = async (id) => {
-    if(confirm("¿Seguro que deseas rechazar este pedido?")) {
-        await updateDoc(doc(db, "pedidos", id), { estado: 'rechazado' });
-    }
-};
 window.toggleDisponibilidad = async (id, disp) => await updateDoc(doc(db, "platos", id), { disponible: disp });
 
+window.rechazarPedido = (id) => {
+    idParaEliminar = "RECHAZAR_PEDIDO:" + id; 
+    document.getElementById('modal-title').innerHTML = `
+        <span style="color:var(--danger); font-weight:600;">¿Rechazar pedido?</span><br>
+        <small style="color:var(--text-muted); font-size:0.8rem;">Esta acción se registrará en las pérdidas de hoy.</small>
+    `;
+    document.getElementById('delete-modal').style.display = 'flex';
+};
+
+window.eliminarPlatoModal = (id) => { 
+    idParaEliminar = id; 
+    document.getElementById('modal-title').innerText = '¿Borrar este plato?'; 
+    document.getElementById('delete-modal').style.display = 'flex'; 
+};
+
+window.confirmarReinicioTotal = () => { 
+    if (auth.currentUser.email !== CORREO_MASTER) return; 
+    idParaEliminar = "REINICIO_TOTAL"; 
+    document.getElementById('modal-title').innerHTML = `<span style="color:var(--danger)">¿ESTÁS SEGURO?</span><br>Se borrarán todos los pedidos y las métricas volverán a cero.`; 
+    document.getElementById('delete-modal').style.display = 'flex'; 
+};
+
+const btnConfirmarEliminar = document.getElementById('confirm-delete-btn');
+if (btnConfirmarEliminar) {
+    btnConfirmarEliminar.onclick = async () => {
+        if (idParaEliminar === "REINICIO_TOTAL") {
+            const promesas = pedidosGlobales.map(p => deleteDoc(doc(db, "pedidos", p.id)));
+            await Promise.all(promesas);
+            alert("Métricas reiniciadas.");
+        } 
+        else if (idParaEliminar && idParaEliminar.startsWith("RECHAZAR_PEDIDO:")) {
+            const idPedido = idParaEliminar.split(":")[1];
+            await updateDoc(doc(db, "pedidos", idPedido), { estado: 'rechazado' });
+        } 
+        else if (idParaEliminar) {
+            await deleteDoc(doc(db, "platos", idParaEliminar));
+        }
+        idParaEliminar = null; 
+        document.getElementById('delete-modal').style.display = 'none';
+    };
+}
+
+// --- CARTA Y FORMULARIOS ---
 function escucharCarta() {
     onSnapshot(collection(db, "platos"), (snap) => {
         const list = document.getElementById('inv-list');
@@ -198,21 +234,6 @@ function escucharCarta() {
     });
 }
 
-let idParaEliminar = null;
-window.eliminarPlatoModal = (id) => { idParaEliminar = id; document.getElementById('modal-title').innerText = '¿Borrar este plato?'; document.getElementById('delete-modal').style.display = 'flex'; };
-window.confirmarReinicioTotal = () => { if (auth.currentUser.email !== CORREO_MASTER) return; idParaEliminar = "REINICIO_TOTAL"; document.getElementById('modal-title').innerHTML = `<span style="color:var(--danger)">¿ESTÁS SEGURO?</span><br>Se borrarán todos los pedidos y las métricas volverán a cero.`; document.getElementById('delete-modal').style.display = 'flex'; };
-const btnConfirmarEliminar = document.getElementById('confirm-delete-btn');
-if (btnConfirmarEliminar) {
-    btnConfirmarEliminar.onclick = async () => {
-        if (idParaEliminar === "REINICIO_TOTAL") {
-            const promesas = pedidosGlobales.map(p => deleteDoc(doc(db, "pedidos", p.id)));
-            await Promise.all(promesas);
-            alert("Métricas reiniciadas.");
-        } else if (idParaEliminar) await deleteDoc(doc(db, "platos", idParaEliminar));
-        idParaEliminar = null; document.getElementById('delete-modal').style.display = 'none';
-    };
-}
-
 window.editarPlato = (id, nombre, precio, cat, desc, ing) => {
     document.getElementById('edit-id').value = id; document.getElementById('name').value = nombre; document.getElementById('price').value = precio; document.getElementById('category').value = cat; document.getElementById('desc').value = desc; document.getElementById('ingredients').value = ing; document.getElementById('f-title').innerText = "Editando Plato"; document.getElementById('btn-cancelar').style.display = 'block';
 };
@@ -225,6 +246,7 @@ document.getElementById('m-form').onsubmit = async (e) => {
     window.cancelarEdicion();
 };
 
+// --- RENDERIZADO FINAL ---
 window.renderizarPlanoMesas = function(pedidos) {
     const grid = document.getElementById('grid-mesas'); if (!grid) return;
     const mesasActivas = pedidos.filter(p => p.estado !== 'listo' && p.estado !== 'rechazado' && p.cliente.toLowerCase().includes('mesa'));
