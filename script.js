@@ -9,6 +9,7 @@ SOUND_ADD.src = 'https://assets.mixkit.co/sfx/preview/mixkit-bubble-pop-up-alert
 SOUND_ADD.preload = 'auto';
 document.body.appendChild(SOUND_ADD);
 
+// --- INICIALIZACIÓN ---
 document.addEventListener("DOMContentLoaded", () => {
     const params = new URLSearchParams(window.location.search);
     const mesaParam = params.get('mesa');
@@ -69,7 +70,6 @@ window.agregarAlCarrito = (nombre, precio, id) => {
         void cartFab.offsetWidth; 
         cartFab.classList.add('cart-bounce');
     }
-    
     actualizarCarrito();
 };
 
@@ -77,26 +77,19 @@ function actualizarCarrito() {
     const cont = document.getElementById('cart-items');
     const priceEl = document.getElementById('cart-total-price');
     const countEl = document.getElementById('cart-count');
-    
     const totalItems = carrito.reduce((acc, item) => acc + item.cantidad, 0);
     if(countEl) countEl.innerText = totalItems;
-    
     if(!cont) return;
     cont.innerHTML = '';
     let total = 0;
-    
     carrito.forEach((item, i) => {
         total += (item.precio * item.cantidad);
         const excluidosStr = item.excluidos && item.excluidos.length > 0 
             ? `<div style="color:#ef4444; font-size:0.75rem; font-weight:600; margin-top:4px;">❌ Sin: ${item.excluidos.join(', ')}</div>` 
             : '';
-
         cont.innerHTML += `
         <div class="cart-item-row">
-            <div>
-                <strong style="font-size:1.05rem;">${item.cantidad}x ${item.nombre}</strong>
-                ${excluidosStr}
-            </div>
+            <div><strong style="font-size:1.05rem;">${item.cantidad}x ${item.nombre}</strong>${excluidosStr}</div>
             <div style="display:flex; align-items:center; gap:12px;">
                 <span style="color:#22c55e; font-weight:700;">$${(item.precio * item.cantidad).toLocaleString()}</span>
                 <button onclick="quitar(${i})" class="btn-remove-item">${ICON_TRASH}</button>
@@ -107,18 +100,6 @@ function actualizarCarrito() {
 }
 
 window.quitar = (i) => { carrito.splice(i, 1); actualizarCarrito(); };
-// Cerrar el carrito si se hace clic fuera del contenido blanco
-document.addEventListener('click', (e) => {
-    const cartModal = document.getElementById('cart-modal');
-    const cartFab = document.querySelector('.cart-fab');
-    
-    // Si el carrito está abierto y el clic no es dentro del carrito ni en el botón flotante
-    if (cartModal.classList.contains('open') && 
-        !cartModal.contains(e.target) && 
-        !cartFab.contains(e.target)) {
-        toggleCart();
-    }
-});
 
 // --- ENVÍO DE PEDIDO ---
 window.enviarPedido = async () => {
@@ -135,15 +116,13 @@ window.enviarPedido = async () => {
     }
 
     const total = carrito.reduce((s, x) => s + (x.precio * x.cantidad), 0);
-    
-    // Aquí preparamos los items manteniendo sus ingredientes excluidos
     let itemsParaEnviar = [];
     carrito.forEach(item => {
         for(let k = 0; k < item.cantidad; k++) {
             itemsParaEnviar.push({
                 nombre: item.nombre,
                 precio: item.precio,
-                excluidos: item.excluidos || [] // IMPORTANTE: Enviamos los tachados
+                excluidos: item.excluidos || []
             });
         }
     });
@@ -153,17 +132,12 @@ window.enviarPedido = async () => {
         const docRef = await addDoc(collection(db, "pedidos"), { 
             cliente, tipo, items: itemsParaEnviar, total, estado: "pendiente", timestamp: serverTimestamp() 
         });
-        
         if (quiereWA) {
-            // Formatear mensaje de WhatsApp con los "SIN"
             let msgWA = `*NUEVO PEDIDO IKU*%0A*Cliente:* ${cliente}%0A------------------%0A`;
-            carrito.forEach(i => {
-                msgWA += `• ${i.cantidad}x ${i.nombre} ${i.excluidos.length > 0 ? `(SIN: ${i.excluidos.join(', ')})` : ''}%0A`;
-            });
+            carrito.forEach(i => { msgWA += `• ${i.cantidad}x ${i.nombre} ${i.excluidos.length > 0 ? `(SIN: ${i.excluidos.join(', ')})` : ''}%0A`; });
             msgWA += `------------------%0A*Total:* $${total.toLocaleString()}`;
             window.open(`https://wa.me/573210000000?text=${msgWA}`);
         }
-        
         btn.innerHTML = "¡Pedido enviado! ✅";
         setTimeout(() => {
             carrito = []; 
@@ -184,24 +158,20 @@ window.iniciarTracker = (id) => {
             const desc = document.getElementById('tracker-desc');
             const icn = document.getElementById('tracker-icon');
             if(p.estado === 'preparando') {
-                tit.innerText = "Preparando";
-                desc.innerText = "¡Tu pedido ya está en la cocina!";
-                icn.innerText = "🍳";
+                tit.innerText = "Preparando"; desc.innerText = "¡Tu pedido ya está en la cocina!"; icn.innerText = "🍳";
             } else if (p.estado === 'listo') {
-                tit.innerText = "¡Pedido Listo!";
-                desc.innerText = "Tu pedido está listo para ser entregado.";
-                icn.innerText = "✅";
+                tit.innerText = "¡Pedido Listo!"; desc.innerText = "Tu pedido está listo para ser entregado."; icn.innerText = "✅";
                 setTimeout(() => window.cerrarTracker(), 5000);
             }
         }
     });
 };
 
-// --- CARGA DINÁMICA DEL MENÚ ---
+// --- CARGA DINÁMICA DEL MENÚ (CORREGIDA) ---
 onSnapshot(query(collection(db, "platos"), orderBy("nombre", "asc")), (snap) => {
     const categoriasIds = ['diario', 'desayuno', 'especial', 'asado', 'rapida', 'bebida'];
     
-    // 1. Limpieza inicial de todos los contenedores
+    // 1. Limpieza total inmediata
     categoriasIds.forEach(id => {
         const el = document.getElementById(id);
         if(el) el.innerHTML = '';
@@ -209,7 +179,7 @@ onSnapshot(query(collection(db, "platos"), orderBy("nombre", "asc")), (snap) => 
 
     document.getElementById('loader').style.display = 'none';
 
-    // 2. Distribución de platos por categoría
+    // 2. Reparto de platos
     snap.forEach(docSnap => {
         const d = docSnap.data();
         if(d.disponible === false) return; 
@@ -219,7 +189,7 @@ onSnapshot(query(collection(db, "platos"), orderBy("nombre", "asc")), (snap) => 
             ingredientesHTML = `
             <div style="margin-bottom: 16px; padding-top: 10px; border-top: 1px dashed #eee;">
                 <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px; font-weight:600;">Ingredientes <span style="font-weight:400;">(Toca para quitar)</span>:</div>
-                <div class="ing-container" style="margin: 0;">
+                <div class="ing-container">
                     ${d.ingredientes.map(i => `<span class="ing-pill" onclick="event.stopPropagation(); this.classList.toggle('excluido')">${i}</span>`).join('')}
                 </div>
             </div>`;
@@ -249,61 +219,32 @@ onSnapshot(query(collection(db, "platos"), orderBy("nombre", "asc")), (snap) => 
         </div>`;
         
         const container = document.getElementById(d.categoria);
-        if(container) {
-            container.insertAdjacentHTML('beforeend', html);
-        }
+        if(container) container.insertAdjacentHTML('beforeend', html);
     });
 
-    // 3. ACTUALIZACIÓN FORZADA DE VISIBILIDAD
-    // Buscamos cuál es el botón que tiene la clase 'active' actualmente
-    const activeBtn = document.querySelector('.tab-btn.active');
-    if (activeBtn) {
-        const targetTab = activeBtn.dataset.tab;
-        document.querySelectorAll('.menu-section').forEach(section => {
-            if (section.id === targetTab) {
-                section.style.display = 'block';
-                section.classList.add('active');
-            } else {
-                section.style.display = 'none';
-                section.classList.remove('active');
-            }
-        });
-    }
+    // 3. Forzar visibilidad correcta según el botón activo
+    const tabActiva = document.querySelector('.tab-btn.active').dataset.tab;
+    document.querySelectorAll('.menu-section').forEach(s => {
+        s.style.display = (s.id === tabActiva) ? 'block' : 'none';
+    });
 });
 
 // --- CAMBIO DE TABS (MEJORADO) ---
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.onclick = () => {
-        // Quitar estado activo de todos los botones
+        const target = btn.dataset.tab;
+        // Botones
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        // Poner activo al actual
         btn.classList.add('active');
-
-        const targetTab = btn.dataset.tab;
-
-        // Ocultar todas las secciones y mostrar solo la seleccionada
-        document.querySelectorAll('.menu-section').forEach(section => {
-            if (section.id === targetTab) {
-                section.style.display = 'block';
-                // Pequeño delay para que la transición de CSS (si tienes una) se note
-                setTimeout(() => section.classList.add('active'), 10);
+        // Secciones
+        document.querySelectorAll('.menu-section').forEach(s => {
+            if(s.id === target) {
+                s.style.display = 'block';
+                setTimeout(() => s.classList.add('active'), 10);
             } else {
-                section.style.display = 'none';
-                section.classList.remove('active');
+                s.style.display = 'none';
+                s.classList.remove('active');
             }
         });
-        
-        // Scroll automático hacia arriba al cambiar de pestaña (opcional, muy útil en móvil)
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-});
-// --- CAMBIO DE TABS ---
-document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.onclick = () => {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.menu-section').forEach(s => { s.classList.remove('active'); s.style.display = 'none'; });
-        btn.classList.add('active');
-        const s = document.getElementById(btn.dataset.tab);
-        if(s) { s.classList.add('active'); s.style.display = 'block'; }
     };
 });
