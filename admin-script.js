@@ -67,7 +67,6 @@ function escucharCarta() {
         const list = document.getElementById('inv-list'); 
         if (!list) return;
 
-        // Definición de categorías
         const cats = { 
             diario: { titulo: "Menú del Día", platos: [] }, 
             desayuno: { titulo: "Desayunos", platos: [] }, 
@@ -90,7 +89,6 @@ function escucharCarta() {
         for (const k in cats) {
             if (cats[k].platos.length === 0) continue;
 
-            // Renderizado de cada plato dentro de la categoría
             let ph = cats[k].platos.map(it => `
                 <div style="background:white; padding:15px; margin-bottom:10px; border-radius:8px; border:1px solid #eee; display:flex; justify-content:space-between; align-items:center; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
                     <div style="flex:1;">
@@ -104,7 +102,6 @@ function escucharCarta() {
                 </div>
             `).join('');
 
-            // Estructura de Acordeón con las nuevas clases CSS
             h += `
                 <div class="categoria-wrapper" style="margin-bottom:12px;">
                     <div class="categoria-header" onclick="toggleCategoria('cat-${k}', 'chev-${k}')">
