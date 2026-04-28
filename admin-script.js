@@ -8,7 +8,7 @@ let menuGlobal = {}, pedidosGlobales = [], idParaEliminar = null;
 
 // PON AQUÍ TU CORREO DE GMAIL
 const CORREO_MASTER = "cb01grupo@gmail.com";
-const correosAutorizados = [CORREO_MASTER, "tu_correo@gmail.com"]; 
+const correosAutorizados = [CORREO_MASTER, "kelly.araujotafur@gmail.com"]; 
 
 // --- ICONOS ---
 const ICON_PREPARE = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>`;
@@ -43,14 +43,15 @@ function escucharCarta() {
         if (!list) return;
 
         const cats = { 
-            diario: { titulo: "Menú del Día", platos: [] }, 
-            desayuno: { titulo: "Desayunos", platos: [] }, 
-            especial: { titulo: "Especiales", platos: [] }, 
-            asado: { titulo: "Asados", platos: [] }, 
-            rapida: { titulo: "Comida Rápida", platos: [] }, 
-            bebida: { titulo: "Bebidas", platos: [] }, 
-            otros: { titulo: "Otros", platos: [] } 
-        };
+    diario: { titulo: "Menú del Día", platos: [] }, 
+    almuerzo: { titulo: "Almuerzos", platos: [] }, // <-- ESTA ES LA QUE FALTA
+    desayuno: { titulo: "Desayunos", platos: [] }, 
+    especial: { titulo: "Especiales", platos: [] }, 
+    asado: { titulo: "Asados", platos: [] }, 
+    rapida: { titulo: "Comida Rápida", platos: [] }, 
+    bebida: { titulo: "Bebidas", platos: [] }, 
+    otros: { titulo: "Otros", platos: [] } 
+};
 
         snap.forEach(d => {
             const it = d.data(); it.id = d.id; 
