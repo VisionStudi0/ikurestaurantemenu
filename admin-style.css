@@ -133,8 +133,18 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-yellow); 
     #admin-panel { flex-direction: column; height: auto; }
     .sidebar { flex-direction: row; width: 100%; padding: 0; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--border); }
     .sidebar h2 { display: none; }
-    .nav-item { flex-direction: column; padding: 12px; font-size: 0.65rem; min-width: 80px; text-align: center; border-right: none; border-bottom: 3px solid transparent; }
-    .nav-item.active { border-right: none; border-bottom: 3px solid var(--accent-yellow); }
+.nav-item { 
+    padding: 14px 24px; 
+    cursor: pointer; 
+    display: flex; 
+    align-items: center; 
+    justify-content: flex-start; /* Mantiene todo pegado a la izquierda */
+    gap: 12px; 
+    transition: 0.3s; 
+    color: var(--text-muted); 
+    font-weight: 500; 
+    white-space: nowrap; /* CRÍTICO: Evita que el texto se rompa en dos líneas */
+}    .nav-item.active { border-right: none; border-bottom: 3px solid var(--accent-yellow); }
     .main-content { padding: 20px; height: auto; overflow: visible; }
     .bento-grid-stats, .bento-grid-pedidos { grid-template-columns: 1fr; }
     .span-2 { grid-column: span 1; }
