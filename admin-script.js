@@ -107,14 +107,7 @@ window.renderListaInsumosBento = () => {
             <div class="card-bento ${esBajo ? 'card-danger' : ''}" 
                  style="position: relative; cursor: pointer;"
                  onclick="editarInsumo('${i.id}', '${encodeURIComponent(i.nombre)}', ${i.stockActual}, '${i.unidad}', ${i.umbralMinimo}, ${i.costoUnitario}, ${i.factor})">
-                
-                <!-- BOTÓN DE HISTORIAL DIRECTO -->
-                <button onclick="event.stopPropagation(); verHistorialInsumo('${i.id}', '${i.nombre}')" 
-                        title="Ver Historial"
-                        style="position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.1); border: 1px solid var(--border); border-radius: 8px; padding: 5px; cursor: pointer; color: var(--text-main); z-index: 10;">
-                    🕒
-                </button>
-
+              
                 <div class="card-label">${i.nombre}</div>
                 <div class="big-number-small">
                     ${i.stockActual} 
