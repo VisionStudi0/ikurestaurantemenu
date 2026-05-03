@@ -1,30 +1,170 @@
 /* =========================================
-   VARIABLES Y BASE
+   VARIABLES GLOBALES: AURORA FOREST EDITION
    ========================================= */
-:root { 
-    --bg-dark: #0f1115; 
-    --card-dark: #1c1d21;
-    --sidebar: #16181d;
-    --accent-yellow: #ffcc00; 
-    --white: #ffffff; 
-    --success: #22c55e; 
-    --danger: #ef4444; 
-    --text-white: #f8fafc;
-    --text-muted: #94a3b8; 
-    --border: rgba(255, 255, 255, 0.05);
+:root {
+    --bg-main: #f0f2f5;
+    --bg-card: #ffffff;
+    --bg-sidebar: #ffffff; 
+    --text-main: #053931; /* Verde bosque profundo para máxima lectura */
+    --text-muted: #48A89A; 
+    --border: rgba(5, 57, 49, 0.1);
+    --input-bg: #f5f5f7;
+    
+    /* Paleta Aurora */
+    --accent-yellow: #48A89A; /* El menta base de la paleta */
+    --accent-hover: #00524D;  /* Verde más oscuro para contraste */
+    --accent-light: #CBEFEB;  /* El tono casi blanco para fondos suaves */
+    
+   --radius-soft: 12px; /* Bordes más rectos y modernos */
+    --radius-pill: 12px; /* Convertimos las "pastillas" en rectángulos suaves */
+}
+
+[data-theme="dark"] {
+    --bg-main: #000000;      /* Negro total de la paleta */
+    --bg-card: #053931;      /* El tono más oscuro Aurora Forest */
+    --bg-sidebar: #001512;   /* Un tono casi negro pero verdoso */
+    --text-main: #CBEFEB;    /* El color más claro para que brille en la oscuridad */
+    --text-muted: #48A89A; 
+    --border: rgba(203, 239, 235, 0.1);
+    --input-bg: #002b26;
+    --accent-yellow: #48A89A;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
-body { background: var(--bg-dark); color: var(--text-white); overflow: hidden; height: 100vh; }
-
+body { 
+    background: var(--bg-main) !important; 
+    color: var(--text-main);
+    transition: 0.3s;
+}
+body, #admin-panel, .main-content {
+    background: var(--bg-main) !important;
+    color: var(--text-main);
+    transition: background 0.3s ease, color 0.3s ease;
+}
+/* Login  */
 /* =========================================
-   LOGIN
+   PANTALLA DE LOGIN (REDISEÑO ELEGANTE)
    ========================================= */
-.login-container { display: flex; justify-content: center; align-items: center; height: 100vh; background: var(--bg-dark); }
-.login-card { background: var(--card-dark); padding: 40px; border-radius: 24px; text-align: center; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-.login-card h2 { margin-bottom: 5px; font-weight: 700; color: var(--text-white); }
-.login-card p { color: var(--text-muted); margin-bottom: 24px; font-size: 0.9rem; }
+#login-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: var(--bg-main) !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    padding: 20px; /* Evita que choque en celulares pequeños */
+}
 
+/* La tarjeta central */
+.login-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 40px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08); 
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    text-align: center;
+}
+
+/* Título y Logo */
+.login-logo {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--text-main);
+    letter-spacing: 2px;
+    margin-bottom: -10px;
+}
+
+.login-logo span {
+    color: var(--accent-yellow); /* Punto en color menta */
+}
+
+.login-box h2 {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 10px;
+}
+
+/* Inputs de Correo y Contraseña */
+.input-group {
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.input-group label {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding-left: 5px;
+}
+
+/* Botón principal (Menta) */
+.login-submit {
+    width: 100%;
+    padding: 14px;
+    border-radius: var(--radius-pill);
+    font-size: 1rem;
+    margin-top: 10px;
+    border: none;
+    cursor: pointer;
+}
+
+/* Línea divisoria "O continúa con" */
+.login-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 10px 0;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.login-divider::before,
+.login-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid var(--border);
+}
+
+.login-divider span {
+    padding: 0 10px;
+}
+
+/* Botón de Google */
+.btn-google {
+    background: var(--input-bg);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    padding: 12px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.btn-google:hover {
+    background: var(--bg-card);
+    border-color: var(--accent-yellow);
+    box-shadow: 0 8px 20px rgba(136, 201, 188, 0.2);
+    transform: translateY(-2px);
+}
 /* =========================================
    LAYOUT PRINCIPAL (AQUÍ ESTÁ LA MAGIA)
    ========================================= */
@@ -36,8 +176,7 @@ body { background: var(--bg-dark); color: var(--text-white); overflow: hidden; h
     min-width: 260px; 
     max-width: 260px; /* Impide que crezca o encoja */
     flex-shrink: 0;   
-    background: var(--sidebar); 
-    display: flex; 
+    background: var(--bg-sidebar);    display: flex; 
     flex-direction: column; 
     padding: 24px 0; 
     z-index: 100; 
@@ -175,7 +314,7 @@ body { background: var(--bg-dark); color: var(--text-white); overflow: hidden; h
 
 #v-balance td:last-child { border-bottom: none; }
 
-/* Títulos amarillos (Labels) */
+/* Títulos  (Labels) */
 #v-balance td::before {
     content: attr(data-label);
     font-weight: 700;
@@ -218,32 +357,121 @@ body { background: var(--bg-dark); color: var(--text-white); overflow: hidden; h
 .payment-item { display: flex; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
 
 /* Formularios e Inputs */
-input, select, textarea { width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--sidebar); color: var(--white); font-family: inherit; margin-bottom: 12px; outline: none; transition: 0.3s; }
-input:focus, select:focus, textarea:focus { border-color: var(--accent-yellow); }
+/* FIX: TEXTO EN INPUTS Y SELECTS  */
+input, select, textarea {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    max-width: 100%;
+    padding: 12px 16px !important; /* Un poco más de aire a los lados */
+    border-radius: var(--radius-soft) !important; /* Bordes redondeados */
+    border: 1px solid var(--border) !important;
+    background: var(--input-bg) !important;
+    color: var(--text-main) !important;
+    transition: all 0.3s ease;
+}
 
+input:focus, select:focus, textarea:focus { 
+    border-color: var(--accent-yellow) !important;
+    box-shadow: 0 0 0 3px rgba(136, 201, 188, 0.2); /* Resplandor menta suave */
+    outline: none;
+}
 /* Botones */
-.btn-action { padding: 14px; border-radius: 12px; border: none; cursor: pointer; font-weight: 600; transition: 0.3s; display: flex; align-items: center; justify-content: center; width: 100%; }
-.btn-primary { background: var(--white); color: #000; }
-.btn-yellow { background: var(--accent-yellow); color: #000; }
-.btn-yellow:hover { background: #e6b800; transform: translateY(-2px); }
-.btn-outline { border: 1px solid var(--border); background: transparent; color: var(--text-muted); }
 
+button[onclick="abrirModalMerma()"] {
+    background: rgba(239, 68, 68, 0.1) !important; /* Fondo rojo clarito */
+    color: #ef4444 !important; /* Texto rojo */
+}
+
+button[onclick="abrirModalMerma()"]:hover {
+    background: rgba(239, 68, 68, 0.2) !important;
+}
+.btn-primary, .btn-yellow, .btn-action {
+    box-shadow: none !important; /* Adiós a las sombras brillantes */
+    text-shadow: none !important;
+}
+
+.btn-primary:hover, .btn-yellow:hover {
+    background: var(--accent-hover) !important;
+    box-shadow: 0 6px 16px rgba(136, 201, 188, 0.4);
+}
+.btn-action {
+    border-radius: var(--radius-pill) !important; /* Forma de pastilla */
+    padding: 10px 24px !important;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    border: none !important; /* Quitamos el borde duro */
+}
+.btn-outline {
+    background: var(--input-bg) !important; /* Fondo suave del tema */
+    color: var(--text-main) !important;
+}
+.btn-outline:hover {
+    filter: brightness(0.95);
+    transform: translateY(-1px);
+}
+.btn-theme {
+    width: 80%;
+    margin: 10px auto;
+    padding: 10px;
+    border-radius: 12px;
+    border: none;
+    background: var(--bg-card);
+    box-shadow: var(--nm-shadow);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
 /* =========================================
    PEDIDOS Y MESAS
    ========================================= */
-.pedido-card { background: var(--sidebar); padding: 20px; border-radius: 16px; margin-bottom: 15px; border-left: 4px solid var(--border); border-top: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-.pedido-card.pendiente { border-left-color: var(--danger); }
-.pedido-card.preparando { border-left-color: var(--accent-yellow); }
-.pedido-card.listo { border-left-color: var(--success); opacity: 0.7; }
+
+/* =========================================
+   FIX: TARJETAS DE PEDIDOS (Elegante y Serio)
+   ========================================= */
+.pedido-card {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 20px !important;
+    padding: 20px !important;
+    margin-bottom: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04) !important;
+    transition: transform 0.2s ease;
+}
+
+/* Borde indicador lateral mucho más fino (3px) y discreto */
+.pedido-card.pendiente { border-left: 3px solid var(--border) !important; } 
+.pedido-card.preparando { border-left: 3px solid var(--accent-yellow) !important; } 
+.pedido-card.listo { border-left: 3px solid var(--success) !important; }
 
 .acciones-pedido { margin-top: 15px; display: flex; gap: 8px; flex-direction: column; }
 .btn-estado { padding: 12px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; }
 .btn-preparar { background-color: var(--accent-yellow); color: #000; }
 .grid-pagos { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
 .btn-pago { padding: 10px 4px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-size: 0.8rem; color: white; }
-.nequi { background-color: #DA0081; }
-.banco { background-color: #0047BA; }
-.efectivo { background-color: var(--success); }
+/* Botones de Pago en tonos neutros y serios */
+.btn-pago, 
+.nequi { background-color: transparent !important; }
+.banco { background-color: transparent !important; }
+.efectivo { background-color: transparent !important; }
+
+/* 2. Forzamos el estilo serio y profesional en todos los botones de pago */
+.btn-pago, .nequi, .banco, .efectivo {
+    background: var(--input-bg) !important;
+    color: var(--text-muted) !important;
+    border: 1px solid var(--border) !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+}
+
+/* 3. HOVER ELEGANTE: Solo se iluminan sutilmente al pasar el mouse */
+.btn-pago:hover, .nequi:hover, .banco:hover, .efectivo:hover {
+    color: var(--text-main) !important;
+    border-color: var(--accent-yellow) !important;
+    background: var(--bg-card) !important;
+}
 
 /* Categorías Carta */
 .categoria-header { background: var(--sidebar); border: 1px solid var(--border); padding: 14px 18px; border-radius: 12px; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
@@ -259,10 +487,58 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-yellow); 
 .mesa-libre { border-color: rgba(34, 197, 94, 0.3); }
 .mesa-ocupada { border-color: var(--accent-yellow); background: rgba(255, 204, 0, 0.05); cursor: pointer; }
 .mesa-ocupada:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(255, 204, 0, 0.1); }
+/* =========================================
+   MODALES (ESTILO ESPEJO REFINADO)
+   ========================================= */
+#modal-merma > div, 
+#modal-compra > div, 
+#delete-modal > div {
+    background: var(--bg-card) !important; /* Ahora se adapta al modo claro/oscuro automáticamente */
+    border: 1px solid var(--border) !important;
+    border-radius: 24px !important;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08) !important; /* Sombra suave, no dura */
+}
+#modal-compra h3, 
+#modal-merma h3, 
+#delete-modal h3 {
+    color: var(--text-main) !important; 
+    font-weight: 700 !important;
+}
+#f-compra label, 
+#f-merma label {
+    color: var(--text-muted) !important;
+    font-weight: 500;
+}
 
+/* Botones "Ingresar" y "Reportar" vivos y legibles */
+#f-compra button[type="submit"], 
+#f-merma button[type="submit"] {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    opacity: 1 !important; /* Quita el efecto opaco */
+    border-radius: var(--radius-pill) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
 /* Modales */
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); justify-content: center; align-items: center; z-index: 1000; }
 .modal-content { background: var(--card-dark); padding: 32px; border-radius: 24px; text-align: center; max-width: 400px; width: 90%; border: 1px solid var(--border); }
+
+
+/* =========================================
+   POWER SWITCH ICON (ON/OFF)
+   ========================================= */
+#power-icon {
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    color: var(--text-muted); /* Apagado por defecto */
+}
+
+/* Cuando el sistema está en MODO CLARO (Sistema "Encendido") */
+[data-theme="light"] #power-icon {
+    color: var(--accent-yellow) !important;
+    filter: drop-shadow(0 0 8px rgba(255, 204, 0, 0.6));
+    transform: scale(1.1);
+}
+
 /* =========================================
    FIX: LOGO ESCRITORIO
    ========================================= */
@@ -283,6 +559,51 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-yellow); 
 /* =========================================
    RESPONSIVE 
    ========================================= */
+
+@media (max-width: 768px) {
+    /* 1. Sidebar Dinámica y Limpia */
+    .sidebar {
+        width: 70px !important;
+        min-width: 70px !important;
+        max-width: 70px !important;
+        height: 100vh;
+        /* Usamos la variable para que cambie de color automáticamente */
+        background: var(--bg-sidebar) !important; 
+        position: fixed;
+        left: 0;
+        top: 0;
+        padding: 25px 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        border-right: 1px solid var(--border);
+        z-index: 1000;
+        /* Quitamos el desenfoque excesivo para que se vea más nítido */
+        backdrop-filter: none; 
+        transition: background 0.3s ease; 
+    }
+
+    /* 2. Item Activo: Sin resplandores "sucios" */
+  .nav-item.active {
+    background-color: var(--accent-yellow) !important;
+    color: #053931 !important; /* Verde profundo para máximo contraste */
+    /* ELIMINAMOS cualquier sombra o resplandor amarillo */
+    box-shadow: none !important; 
+    border-radius: 12px !important; /* Bordes más cuadrados y serios */
+    opacity: 1;
+}
+
+    .nav-item.active svg {
+    stroke: #053931 !important; /* Icono oscuro sobre menta */
+}
+
+    /* Ajuste para los iconos apagados */
+    .nav-item {
+        color: var(--text-muted) !important;
+        opacity: 0.8;
+        transition: all 0.2s ease;
+    }
+}
 /* =========================================
    ESTILO MOBILE: ICON RAIL 
    ========================================= */
@@ -392,46 +713,89 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-yellow); 
     }
 
     /* 5. Ajustar el formulario de "Configuración de Ítem" */
+   .form-container, .stat-card {
+    overflow: hidden; /* Evita que las letras se salgan */
+    display: flex;
+    flex-direction: column;
+}
     .form-container {
-        padding: 20px !important;
-        margin-top: 10px;
-    }
-
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    padding: 24px !important;
+    border-radius: 20px;
+    width: 100%;
+}
+   .form-container input, .form-container select {
+    width: 100% !important;
+    max-width: 100%;
+    margin-bottom: 8px;
+    padding: 12px !important;
+    border-radius: 12px !important;
+    box-sizing: border-box; /* Crucial para que el padding no sume al ancho */
+}
     .form-container h3 {
         font-size: 1.1rem !important;
     }
 
     /* Sidebar: Barra lateral de cristal */
     .sidebar {
-        width: 70px !important;
-        min-width: 70px !important;
-        max-width: 70px !important;
-        height: 100vh;
-        background: rgba(15, 17, 21, 0.85) !important;
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        position: fixed;
-        left: 0;
-        top: 0;
-        padding: 25px 0;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        border-right: 1px solid rgba(255, 255, 255, 0.05);
-        z-index: 1000;
-    }
+    width: 70px !important;
+    min-width: 70px !important;
+    max-width: 70px !important;
+    height: 100vh;
+    /* QUITAMOS el rgba oscuro fijo y usamos la variable dinámica */
+    background: var(--bg-sidebar) !important; 
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    position: fixed;
+    left: 0;
+    top: 0;
+    padding: 25px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-right: 1px solid var(--border);
+    z-index: 1000;
+    transition: background 0.3s ease;
+}
 
     /* Ocultar elementos de texto */
     .sidebar h2, .nav-item span { display: none !important; }
 
     /* Logo Minimalista en móvil */
     .sidebar-logo {
-        display: block !important;
-        font-size: 1.2rem;
+        display: flex !important;
+        justify-content: center;
+        align-items: center;
+        width: 45px !important; /* Un poco más grande para las dos letras */
+        height: 45px !important;
+        background: var(--input-bg); /* Fondo sutil que cambia con el tema */
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        margin: 0 auto 35px auto !important;
+        color: var(--accent-yellow); /* Color menta característico */
         font-weight: 800;
-        color: var(--accent-yellow);
-        margin-bottom: 35px;
+        letter-spacing: -1px; /* Junta un poco las letras para estilo moderno */
+        position: relative;
     }
+
+    /* Inyectamos las iniciales SL y ocultamos el texto original */
+    .sidebar-logo {
+        font-size: 0 !important; /* Oculta el texto SARLAB original */
+    }
+
+    .sidebar-logo::before {
+        content: 'SL';
+        font-size: 1.1rem !important; /* Tamaño perfecto para las iniciales */
+        letter-spacing: 0;
+        display: block;
+    }
+
+    /* Quitamos cualquier resplandor o sombra del logo para que se vea limpio */
+    .sidebar-logo {
+        box-shadow: none !important;
+    }
+
 
     /* Items de Navegación */
     .nav-item {
@@ -450,10 +814,13 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-yellow); 
 
     /* Estado Activo */
     .nav-item.active {
-        background: var(--accent-yellow) !important;
-        color: #0f1115 !important;
-        box-shadow: 0 8px 20px rgba(255, 204, 0, 0.15);
-    }
+    background-color: var(--accent-yellow) !important;
+    color: #053931 !important; /* Verde profundo para máximo contraste */
+    /* ELIMINAMOS cualquier sombra o resplandor amarillo */
+    box-shadow: none !important; 
+    border-radius: 12px !important; /* Bordes más cuadrados y serios */
+    opacity: 1;
+}
 
     /* Contenido Principal: Ajustado a la derecha */
     .main-content {
@@ -500,17 +867,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-yellow); 
    ========================================= */
 
 /* 1. Tarjetas principales: Fondo oscuro, BORDES y PADDING para que respiren */
-.admin-panel-card,
-.stat-card {
-    background-color: var(--card-dark) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 16px !important;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2) !important;
-    padding: 24px !important; /* <- Esto soluciona lo apilonado */
-    color: var(--white) !important;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+/* FIX: TARJETAS DE MÉTRICAS (Texto Perdidas/Rechazos) */
+.admin-panel-card, .stat-card {
+    background: var(--bg-card) !important;
+    color: var(--text-main) !important;
 }
 
 /* 2. Textos de las tarjetas */
@@ -523,11 +883,45 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-yellow); 
 
 .admin-panel-card strong, 
 .stat-card strong {
-    color: var(--white) !important;
+    font-size: 1.3rem !important; /* Bajamos de 1.8rem a 1.3rem */
+    margin-top: 6px !important;
+    font-weight: 700;
+    display: block;
 }
 
+/* 2. Fix para la lista de Nequi, Banco, Efectivo (Que no sean gigantes) */
+.admin-panel-card .payment-item strong,
+.admin-panel-card div[style*="display: flex"] strong,
+.grid-pagos strong {
+    font-size: 0.95rem !important; /* Tamaño normal de texto */
+    margin-top: 0 !important;
+    display: inline-block;
+}
+
+/* 3. Fix específico para la caja de Rechazos */
+#rankings-rechazados strong {
+    font-size: 1.3rem !important;
+    margin-top: 6px !important;
+    display: block;
+    color: var(--text-main) !important;
+}
+.stat-card {
+    background: var(--bg-card) !important;
+    border-radius: 20px !important; /* Bordes amigables, adiós rectángulos rígidos */
+    border: 1px solid var(--border) !important;
+    padding: 24px !important; /* Espacio extra vital para que no se corte la V ni el $ */
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04) !important; /* Sombra estilo neumórfico */
+    overflow: visible !important; /* IMPORTANTE: Esto evita que se coman las letras de los bordes */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
 /* 3. Forzar al modo oscuro las sub-tarjetas generadas por el JavaScript (Los cuadros blancos internos) */
-#rankings-rechazados div,
+#rankings-rechazados {
+    background: var(--input-bg) !important;
+    color: var(--text-main) !important;
+    border-radius: 12px;
+}
 #rankings-categoria div {
     background-color: #16181d !important; /* Fondo oscuro para los recuadros internos */
     color: var(--white) !important;
@@ -541,16 +935,16 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-yellow); 
     color: var(--text-muted) !important;
 }
 
-/* 4. Magia: La PRIMERA tarjeta (Ventas de Hoy) se vuelve AMARILLA para destacar */
+/* 4. Magia: La PRIMERA tarjeta (Ventas de Hoy)*/
 .stat-card:nth-child(1) {
-    background-color: var(--accent-yellow) !important;
-    border: none !important;
+    background: linear-gradient(135deg, #48A89A, #00524D) !important;
+    color: #CBEFEB !important; /* Letras casi blancas sobre fondo muy oscuro */
 }
 
-/* Textos oscuros solo para la tarjeta amarilla */
 .stat-card:nth-child(1) div,
 .stat-card:nth-child(1) strong {
-    color: #0f1115 !important;
+    color: #ffffff !important;
+    padding-left: 2px; /* Un mini respiro extra izquierdo por seguridad */
 }
 
 /* 5. Selector de periodo (El desplegable) adaptado al modo oscuro */
@@ -558,4 +952,88 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-yellow); 
     background-color: var(--sidebar) !important;
     color: var(--white) !important;
     border: 1px solid var(--border) !important;
+}
+/* =========================================
+   FIX: VISIBILIDAD EN PEDIDOS Y KARDEX (HISTORIAL)
+   ========================================= */
+
+/* 1. Declarar los colores semánticos que faltaban */
+:root {
+    --success: #10b981; /* Verde esmeralda */
+    --danger: #ef4444;  /* Rojo pasión */
+    --info: #3b82f6;    /* Azul claro */
+}
+
+/* 2. Fix Botones de Método de Pago (Asegurar que Efectivo se vea) */
+.efectivo, .banco, .nequi { 
+    background-color: var(--input-bg) !important; 
+    color: var(--text-muted) !important;
+    border: 1px solid var(--border) !important;
+}
+
+/* 3. Fix Botones de Acciones en Pedidos (Rechazar, A Pendiente, Revertir) */
+.btn-outline {
+    color: var(--text-main) !important; /* Se adapta a claro/oscuro */
+    border: 1px solid var(--border) !important;
+    background: var(--input-bg) !important;
+}
+
+/* Le damos colores específicos e inteligentes a cada botón de acción */
+/* Botón "A Pendiente" sobrio */
+button[onclick*="revertirAPendiente"] {
+    color: var(--text-muted) !important;
+    border-color: var(--border) !important;
+    background: transparent !important;
+}
+/* Botón específico de Exportar */
+button[onclick*="exportar"], .btn-action {
+    border-radius: 12px !important;
+    padding: 10px 20px !important;
+    background-color: var(--accent-hover) !important; /* Verde más oscuro Aurora */
+    color: #CBEFEB !important; /* Letras claras para lectura perfecta */
+}
+button[onclick*="exportar"]:hover {
+    background-color: #053931 !important;
+    transform: none !important; /* Evitamos que el botón "salte" */
+}
+/* Botón "Rechazar": Neutro por defecto, rojo solo en hover */
+button[onclick*="rechazarPedido"] {
+    color: var(--text-muted) !important; 
+    border-color: var(--border) !important;
+    background: transparent !important;
+}
+
+button[onclick*="rechazarPedido"]:hover {
+    color: var(--danger) !important;
+    border-color: var(--danger) !important;
+    background: rgba(239, 68, 68, 0.05) !important;
+}
+
+/* 4. Fix Textos Invisibles en el Historial de Existencias (Kardex) */
+#seccion-kardex {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 20px;
+}
+
+/* Forzar que el título y los datos respeten el color del texto principal */
+#kardex-titulo, 
+#seccion-kardex h3,
+#tabla-kardex-body td {
+    color: var(--text-main) !important;
+}
+
+/* El botón de Cerrar del historial */
+#seccion-kardex button {
+    color: var(--text-muted) !important;
+    font-weight: 600;
+}
+
+#seccion-kardex button:hover {
+    color: var(--danger) !important;
+}
+
+/* Garantizar que los mensajes de error se vean en rojo */
+#tabla-kardex-body td[style*="color:var(--danger)"] {
+    color: var(--danger) !important;
 }
