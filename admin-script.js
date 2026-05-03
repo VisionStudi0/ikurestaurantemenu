@@ -16,93 +16,6 @@ const ICON_PREPARE = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none
 const ICON_X = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
 const ICON_EDIT = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
 const ICON_TRASH = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
-
-// --- 1. AUTENTICACIÓN ---
-const loginScreen = document.getElementById('login-screen');
-const adminPanel = document.getElementById('admin-panel');
-const loginBtn = document.getElementById('login-btn'); // Botón de Google
-const logoutBtn = document.getElementById('logout-btn');
-const loginForm = document.getElementById('login-form'); // Formulario de correo
-
-// 1.1 Entrar con Google
-const googleProvider = new GoogleAuthProvider();
-if (loginBtn) {
-    loginBtn.onclick = (e) => {
-        e.preventDefault();
-        signInWithPopup(auth, googleProvider).catch(error => {
-            console.error("Error con Google:", error);
-            mostrarNotificacion("Hubo un problema al intentar acceder con Google.", "error");
-        });
-    };
-}
-
-// 1.2 Entrar con Correo y Contraseña
-if (loginForm) {
-    loginForm.onsubmit = (e) => {
-        e.preventDefault();
-        const email = document.getElementById('email').value;
-        const pass = document.getElementById('password').value;
-        const btnSubmit = loginForm.querySelector('button[type="submit"]');
-        
-        btnSubmit.innerText = "Verificando...";
-        btnSubmit.disabled = true;
-
-        signInWithEmailAndPassword(auth, email, pass)
-            .catch(error => {
-                console.error("Error de acceso:", error);
-                mostrarNotificacion("Correo o contraseña incorrectos.", "error");
-            })
-            .finally(() => {
-                btnSubmit.innerText = "Ingresar";
-                btnSubmit.disabled = false;
-            });
-    };
-}
-
-// 1.3 Cerrar Sesión
-if (logoutBtn) {
-    logoutBtn.onclick = () => signOut(auth);
-}
-
-// 1.4 EL GUARDIÁN CENTRAL (Observador de sesión)
-onAuthStateChanged(auth, (u) => {
-    // Si hay usuario Y su correo está en la lista de permitidos
-    if (u && correosAutorizados.includes(u.email)) {
-        loginScreen.style.display = 'none';
-        adminPanel.style.display = 'flex';
-        
-        // Verifica si es el administrador maestro
-        if (u.email === CORREO_MASTER) {
-            const masterTools = document.getElementById('master-tools');
-            if (masterTools) masterTools.style.display = 'block';
-        }
-        
-        // Arranca el sistema de IKU trayendo los datos
-        escucharCarta(); 
-        escucharPedidos(); 
-        escucharInventario();
-    } else {
-        // Si hay alguien logueado pero NO está en la lista de correos autorizados, lo expulsamos
-        if (u) {
-            signOut(auth);
-            mostrarNotificacion("No tienes permisos para entrar al sistema.", "error");
-        }
-        
-        // Ocultar panel y mostrar login
-        adminPanel.style.display = 'none';
-        loginScreen.style.display = 'flex';
-    }
-});
-// --- 2. PEDIDOS, MESAS Y MÉTRICAS ---
-function escucharPedidos() {
-    onSnapshot(query(collection(db, "pedidos"), orderBy("timestamp", "desc")), (snap) => {
-        pedidosGlobales = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        renderPedidosUI();
-        actualizarMétricas();
-        renderizarPlanoMesas(pedidosGlobales);
-    });
-}
-
 function renderPedidosUI() {
     const lp = document.getElementById('l-pendientes'), la = document.getElementById('l-atendidos');
     if(!lp || !la) return; lp.innerHTML = ''; la.innerHTML = '';
@@ -150,72 +63,15 @@ function renderPedidosUI() {
         estadoActual === 'listo' ? la.appendChild(card) : lp.appendChild(card);
     });
 }
-
-// --- FUNCIONES DE ESTADO (PROTEGIDAS) ---
-window.actualizarEstado = async (id, estado) => {
-    try {
-        await updateDoc(doc(db, "pedidos", id), { estado });
-        if (estado === 'preparando') {
-            procesarDescuentoStock(id); // Importante: sin el "await"
-        }
-    } catch (error) {
-        console.error("Error al actualizar estado:", error);
-        alert("Error de conexión al mover el pedido.");
-    }
-};
-
-window.cerrarPedido = async (id, m) => await updateDoc(doc(db, "pedidos", id), { estado: 'listo', metodoPago: m });
-window.revertirPedido = async (id) => await updateDoc(doc(db, "pedidos", id), { estado: 'preparando', metodoPago: null });
-window.revertirAPendiente = async (id) => await updateDoc(doc(db, "pedidos", id), { estado: 'pendiente' });
-window.rechazarPedido = (id) => { idParaEliminar = "RECHAZAR:" + id; document.getElementById('modal-title').innerHTML = `<span style="color:var(--danger)">¿Rechazar pedido?</span>`; document.getElementById('delete-modal').style.display = 'flex'; };
-
-window.actualizarMétricas = function() {
-    let tVentas = 0, tMes = 0, pedidosContados = 0, tNequi = 0, tBanco = 0, tEfectivo = 0, rechazadosContados = 0;
-    const ahora = new Date();
-    const filtro = document.getElementById('periodo-selector')?.value || 'hoy';
-
-    pedidosGlobales.forEach(p => {
-        if(!p.timestamp) return;
-        const f = p.timestamp.toDate();
-        const esMismoDia = f.getDate() === ahora.getDate() && f.getMonth() === ahora.getMonth() && f.getFullYear() === ahora.getFullYear();
-        let cumpleFiltro = filtro === 'hoy' ? esMismoDia : filtro === 'semana' ? f >= (new Date().setDate(ahora.getDate()-7)) : filtro === 'mes' ? (f.getMonth() === ahora.getMonth() && f.getFullYear() === ahora.getFullYear()) : true;
-
-        if(cumpleFiltro) {
-            if(p.estado === 'rechazado') { rechazadosContados++; }
-            else {
-                tVentas += Number(p.total); pedidosContados++;
-                if(p.metodoPago === 'nequi') tNequi += Number(p.total);
-                if(p.metodoPago === 'banco') tBanco += Number(p.total);
-                if(p.metodoPago === 'efectivo') tEfectivo += Number(p.total);
-            }
-        }
-        if(f.getMonth() === ahora.getMonth() && f.getFullYear() === ahora.getFullYear() && p.estado !== 'rechazado') tMes += Number(p.total);
+// --- 2. PEDIDOS, MESAS Y MÉTRICAS ---
+function escucharPedidos() {
+    onSnapshot(query(collection(db, "pedidos"), orderBy("timestamp", "desc")), (snap) => {
+        pedidosGlobales = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderPedidosUI();
+        actualizarMétricas();
+        renderizarPlanoMesas(pedidosGlobales);
     });
-
-    const setUI = (id, val) => { if(document.getElementById(id)) document.getElementById(id).innerText = val; };
-    setUI('s-hoy', `$${tVentas.toLocaleString()}`); setUI('s-pedidos-total', pedidosContados); setUI('s-mes', `$${tMes.toLocaleString()}`);
-    setUI('s-nequi', `$${tNequi.toLocaleString()}`); setUI('s-bancolombia', `$${tBanco.toLocaleString()}`); setUI('s-efectivo', `$${tEfectivo.toLocaleString()}`);
-    
-    const rDiv = document.getElementById('rankings-rechazados');
-    if(rDiv) rDiv.innerHTML = `<div style="padding:10px; border-radius:8px; border:1px solid var(--border);">Total Rechazos: <strong>${rechazadosContados}</strong></div>`;
-};
-window.toggleTheme = () => {
-    const html = document.documentElement;
-    const current = html.getAttribute('data-theme');
-    const target = current === 'dark' ? 'light' : 'dark';
-    
-    html.setAttribute('data-theme', target);
-    localStorage.setItem('iku-admin-theme', target);
-    
-    // Feedback visual opcional en consola
-    console.log(`Sistema IKU: ${target === 'light' ? 'Encendido (Claro)' : 'Apagado (Oscuro)'}`);
-};
-
-// Cargar tema guardado al iniciar
-const savedTheme = localStorage.getItem('iku-admin-theme') || 'light';
-document.documentElement.setAttribute('data-theme', savedTheme);
-if(savedTheme === 'dark') document.getElementById('theme-icon').innerText = '';
-
+}
 window.renderizarPlanoMesas = (ps) => {
     const g = document.getElementById('grid-mesas'); if(!g) return;
     const mas = ps.filter(p => p.estado !== 'listo' && p.estado !== 'rechazado' && p.cliente.toLowerCase().includes('mesa'));
@@ -226,15 +82,6 @@ window.renderizarPlanoMesas = (ps) => {
     }
     g.innerHTML = h;
 };
-
-window.irAPedido = (id) => {
-    document.querySelector('[onclick*="v-pedidos"]').click();
-    setTimeout(() => {
-        const el = document.getElementById(`card-${id}`);
-        if(el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.style.border = "2px solid var(--accent-yellow)"; setTimeout(() => el.style.border = "1px solid var(--border)", 2000); }
-    }, 200);
-};
-
 // --- 3. BODEGA, INVENTARIO Y KARDEX ---
 function escucharInventario() {
     onSnapshot(collection(db, "inventario"), (snap) => {
@@ -318,6 +165,162 @@ window.renderInventarioTable = () => {
 
     tbody.innerHTML = html || '<tr><td colspan="7" style="text-align:center; padding:40px; color:var(--text-muted);">No se encontraron insumos.</td></tr>';
 };
+// --- 1. AUTENTICACIÓN ---
+const loginScreen = document.getElementById('login-screen');
+const adminPanel = document.getElementById('admin-panel');
+const loginBtn = document.getElementById('login-btn'); // Botón de Google
+const logoutBtn = document.getElementById('logout-btn');
+const loginForm = document.getElementById('login-form'); // Formulario de correo
+
+// 1.1 Entrar con Google
+const googleProvider = new GoogleAuthProvider();
+if (loginBtn) {
+    loginBtn.onclick = (e) => {
+        e.preventDefault();
+        signInWithPopup(auth, googleProvider).catch(error => {
+            console.error("Error con Google:", error);
+            mostrarNotificacion("Hubo un problema al intentar acceder con Google.", "error");
+        });
+    };
+}
+
+// 1.2 Entrar con Correo y Contraseña
+if (loginForm) {
+    loginForm.onsubmit = (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+        const pass = document.getElementById('password').value;
+        const btnSubmit = loginForm.querySelector('button[type="submit"]');
+        
+        btnSubmit.innerText = "Verificando...";
+        btnSubmit.disabled = true;
+
+        signInWithEmailAndPassword(auth, email, pass)
+            .catch(error => {
+                console.error("Error de acceso:", error);
+                mostrarNotificacion("Correo o contraseña incorrectos.", "error");
+            })
+            .finally(() => {
+                btnSubmit.innerText = "Ingresar";
+                btnSubmit.disabled = false;
+            });
+    };
+}
+
+// 1.3 Cerrar Sesión
+if (logoutBtn) {
+    logoutBtn.onclick = () => signOut(auth);
+}
+
+// 1.4 EL GUARDIÁN CENTRAL (Observador de sesión)
+onAuthStateChanged(auth, (u) => {
+    // Si hay usuario Y su correo está en la lista de permitidos
+    if (u && correosAutorizados.includes(u.email)) {
+        loginScreen.style.display = 'none';
+        adminPanel.style.display = 'flex';
+        
+        // Verifica si es el administrador maestro
+        if (u.email === CORREO_MASTER) {
+            const masterTools = document.getElementById('master-tools');
+            if (masterTools) masterTools.style.display = 'block';
+        }
+        
+        // Arranca el sistema de IKU trayendo los datos
+        escucharCarta(); 
+        escucharPedidos(); 
+        escucharInventario();
+    } else {
+        // Si hay alguien logueado pero NO está en la lista de correos autorizados, lo expulsamos
+        if (u) {
+            signOut(auth);
+            mostrarNotificacion("No tienes permisos para entrar al sistema.", "error");
+        }
+        
+        // Ocultar panel y mostrar login
+        adminPanel.style.display = 'none';
+        loginScreen.style.display = 'flex';
+    }
+});
+
+// --- FUNCIONES DE ESTADO (PROTEGIDAS) ---
+window.actualizarEstado = async (id, estado) => {
+    try {
+        await updateDoc(doc(db, "pedidos", id), { estado });
+        if (estado === 'preparando') {
+            procesarDescuentoStock(id); // Importante: sin el "await"
+        }
+    } catch (error) {
+        console.error("Error al actualizar estado:", error);
+        alert("Error de conexión al mover el pedido.");
+    }
+};
+
+window.cerrarPedido = async (id, m) => await updateDoc(doc(db, "pedidos", id), { estado: 'listo', metodoPago: m });
+window.revertirPedido = async (id) => await updateDoc(doc(db, "pedidos", id), { estado: 'preparando', metodoPago: null });
+window.revertirAPendiente = async (id) => await updateDoc(doc(db, "pedidos", id), { estado: 'pendiente' });
+window.rechazarPedido = (id) => { idParaEliminar = "RECHAZAR:" + id; document.getElementById('modal-title').innerHTML = `<span style="color:var(--danger)">¿Rechazar pedido?</span>`; document.getElementById('delete-modal').style.display = 'flex'; };
+
+window.actualizarMétricas = function() {
+    let tVentas = 0, tMes = 0, pedidosContados = 0, tNequi = 0, tBanco = 0, tEfectivo = 0, rechazadosContados = 0;
+    const ahora = new Date();
+    const filtro = document.getElementById('periodo-selector')?.value || 'hoy';
+
+    pedidosGlobales.forEach(p => {
+        if(!p.timestamp) return;
+        const f = p.timestamp.toDate();
+        const esMismoDia = f.getDate() === ahora.getDate() && f.getMonth() === ahora.getMonth() && f.getFullYear() === ahora.getFullYear();
+        let cumpleFiltro = filtro === 'hoy' ? esMismoDia : filtro === 'semana' ? f >= (new Date().setDate(ahora.getDate()-7)) : filtro === 'mes' ? (f.getMonth() === ahora.getMonth() && f.getFullYear() === ahora.getFullYear()) : true;
+
+        if(cumpleFiltro) {
+            if(p.estado === 'rechazado') { rechazadosContados++; }
+            else {
+                tVentas += Number(p.total); pedidosContados++;
+                if(p.metodoPago === 'nequi') tNequi += Number(p.total);
+                if(p.metodoPago === 'banco') tBanco += Number(p.total);
+                if(p.metodoPago === 'efectivo') tEfectivo += Number(p.total);
+            }
+        }
+        if(f.getMonth() === ahora.getMonth() && f.getFullYear() === ahora.getFullYear() && p.estado !== 'rechazado') tMes += Number(p.total);
+    });
+
+    const setUI = (id, val) => { if(document.getElementById(id)) document.getElementById(id).innerText = val; };
+    setUI('s-hoy', `$${tVentas.toLocaleString()}`); setUI('s-pedidos-total', pedidosContados); setUI('s-mes', `$${tMes.toLocaleString()}`);
+    setUI('s-nequi', `$${tNequi.toLocaleString()}`); setUI('s-bancolombia', `$${tBanco.toLocaleString()}`); setUI('s-efectivo', `$${tEfectivo.toLocaleString()}`);
+    
+    const rDiv = document.getElementById('rankings-rechazados');
+    if(rDiv) rDiv.innerHTML = `<div style="padding:10px; border-radius:8px; border:1px solid var(--border);">Total Rechazos: <strong>${rechazadosContados}</strong></div>`;
+};
+window.toggleTheme = () => {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const target = current === 'dark' ? 'light' : 'dark';
+    
+    html.setAttribute('data-theme', target);
+    localStorage.setItem('iku-admin-theme', target);
+    
+    // Feedback visual opcional en consola
+    console.log(`Sistema IKU: ${target === 'light' ? 'Encendido (Claro)' : 'Apagado (Oscuro)'}`);
+};
+
+// Cargar tema guardado al iniciar
+const savedTheme = localStorage.getItem('iku-admin-theme') || 'light';
+document.documentElement.setAttribute('data-theme', savedTheme);
+
+const themeIcon = document.getElementById('theme-icon');
+if (themeIcon && savedTheme === 'dark') {
+    themeIcon.innerText = ''; 
+}
+
+
+
+window.irAPedido = (id) => {
+    document.querySelector('[onclick*="v-pedidos"]').click();
+    setTimeout(() => {
+        const el = document.getElementById(`card-${id}`);
+        if(el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.style.border = "2px solid var(--accent-yellow)"; setTimeout(() => el.style.border = "1px solid var(--border)", 2000); }
+    }, 200);
+};
+
 
 // --- SISTEMA DE NOTIFICACIONES ELEGANTE (INYECCIÓN AUTOMÁTICA) ---
 // Crea el contenedor de alertas mágicamente sin tocar el HTML
@@ -918,3 +921,4 @@ window.descargarBalanceCSV = () => {
     link.click();
     document.body.removeChild(link);
 };
+// Asegúrate de que estas funciones críticas tengan el prefijo window.
