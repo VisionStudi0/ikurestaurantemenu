@@ -4,9 +4,8 @@ import {
     deleteDoc, updateDoc, serverTimestamp, addDoc, increment, getDocs, where, limit 
 } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
 import { 
-    GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut 
+    GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut, signInWithEmailAndPassword 
 } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
-
 // --- ESTADO GLOBAL ---
 let categoriasAbiertas = new Set();
 let menuGlobal = {}, pedidosGlobales = [], insumosGlobales = [], idParaEliminar = null;
@@ -19,24 +18,81 @@ const ICON_EDIT = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" s
 const ICON_TRASH = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
 
 // --- 1. AUTENTICACIÓN ---
-const loginBtn = document.getElementById('login-btn');
+const loginScreen = document.getElementById('login-screen');
+const adminPanel = document.getElementById('admin-panel');
+const loginBtn = document.getElementById('login-btn'); // Botón de Google
 const logoutBtn = document.getElementById('logout-btn');
-if (loginBtn) loginBtn.onclick = () => signInWithPopup(auth, new GoogleAuthProvider());
-if (logoutBtn) logoutBtn.onclick = () => signOut(auth);
+const loginForm = document.getElementById('login-form'); // Formulario de correo
 
+// 1.1 Entrar con Google
+const googleProvider = new GoogleAuthProvider();
+if (loginBtn) {
+    loginBtn.onclick = (e) => {
+        e.preventDefault();
+        signInWithPopup(auth, googleProvider).catch(error => {
+            console.error("Error con Google:", error);
+            mostrarNotificacion("Hubo un problema al intentar acceder con Google.", "error");
+        });
+    };
+}
+
+// 1.2 Entrar con Correo y Contraseña
+if (loginForm) {
+    loginForm.onsubmit = (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+        const pass = document.getElementById('password').value;
+        const btnSubmit = loginForm.querySelector('button[type="submit"]');
+        
+        btnSubmit.innerText = "Verificando...";
+        btnSubmit.disabled = true;
+
+        signInWithEmailAndPassword(auth, email, pass)
+            .catch(error => {
+                console.error("Error de acceso:", error);
+                mostrarNotificacion("Correo o contraseña incorrectos.", "error");
+            })
+            .finally(() => {
+                btnSubmit.innerText = "Ingresar";
+                btnSubmit.disabled = false;
+            });
+    };
+}
+
+// 1.3 Cerrar Sesión
+if (logoutBtn) {
+    logoutBtn.onclick = () => signOut(auth);
+}
+
+// 1.4 EL GUARDIÁN CENTRAL (Observador de sesión)
 onAuthStateChanged(auth, (u) => {
-    if(u && correosAutorizados.includes(u.email)) {
-        document.getElementById('admin-panel').style.display = 'flex';
-        document.getElementById('login-screen').style.display = 'none';
-        if(u.email === CORREO_MASTER) document.getElementById('master-tools').style.display = 'block';
-        escucharCarta(); escucharPedidos(); escucharInventario();
+    // Si hay usuario Y su correo está en la lista de permitidos
+    if (u && correosAutorizados.includes(u.email)) {
+        loginScreen.style.display = 'none';
+        adminPanel.style.display = 'flex';
+        
+        // Verifica si es el administrador maestro
+        if (u.email === CORREO_MASTER) {
+            const masterTools = document.getElementById('master-tools');
+            if (masterTools) masterTools.style.display = 'block';
+        }
+        
+        // Arranca el sistema de IKU trayendo los datos
+        escucharCarta(); 
+        escucharPedidos(); 
+        escucharInventario();
     } else {
-        if(u) signOut(auth);
-        document.getElementById('admin-panel').style.display = 'none';
-        document.getElementById('login-screen').style.display = 'flex';
+        // Si hay alguien logueado pero NO está en la lista de correos autorizados, lo expulsamos
+        if (u) {
+            signOut(auth);
+            mostrarNotificacion("No tienes permisos para entrar al sistema.", "error");
+        }
+        
+        // Ocultar panel y mostrar login
+        adminPanel.style.display = 'none';
+        loginScreen.style.display = 'flex';
     }
 });
-
 // --- 2. PEDIDOS, MESAS Y MÉTRICAS ---
 function escucharPedidos() {
     onSnapshot(query(collection(db, "pedidos"), orderBy("timestamp", "desc")), (snap) => {
@@ -143,6 +199,22 @@ window.actualizarMétricas = function() {
     const rDiv = document.getElementById('rankings-rechazados');
     if(rDiv) rDiv.innerHTML = `<div style="padding:10px; border-radius:8px; border:1px solid var(--border);">Total Rechazos: <strong>${rechazadosContados}</strong></div>`;
 };
+window.toggleTheme = () => {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const target = current === 'dark' ? 'light' : 'dark';
+    
+    html.setAttribute('data-theme', target);
+    localStorage.setItem('iku-admin-theme', target);
+    
+    // Feedback visual opcional en consola
+    console.log(`Sistema IKU: ${target === 'light' ? 'Encendido (Claro)' : 'Apagado (Oscuro)'}`);
+};
+
+// Cargar tema guardado al iniciar
+const savedTheme = localStorage.getItem('iku-admin-theme') || 'light';
+document.documentElement.setAttribute('data-theme', savedTheme);
+if(savedTheme === 'dark') document.getElementById('theme-icon').innerText = '';
 
 window.renderizarPlanoMesas = (ps) => {
     const g = document.getElementById('grid-mesas'); if(!g) return;
