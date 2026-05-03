@@ -949,9 +949,33 @@ button[onclick="abrirModalMerma()"]:hover {
 
 /* 5. Selector de periodo (El desplegable) adaptado al modo oscuro */
 #periodo-selector {
-    background-color: var(--sidebar) !important;
-    color: var(--white) !important;
+    background-color: var(--input-bg) !important; /* Fondo sutil integrado */
+    color: var(--text-main) !important;           /* Verde bosque profundo */
     border: 1px solid var(--border) !important;
+    border-radius: 12px !important;               /* Bordes consistentes con el resto */
+    padding: 8px 16px !important;
+    font-size: 0.9rem !important;
+    font-weight: 600 !important;
+    cursor: pointer;
+    outline: none !important;
+    appearance: none;                             /* Quitamos la flecha nativa fea */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23053931' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 40px !important;
+    transition: all 0.3s ease;
+}
+
+#periodo-selector:hover {
+    border-color: var(--accent-yellow) !important;
+    background-color: var(--bg-card) !important;
+}
+
+/* Estilo para las opciones (El menú que cae) */
+#periodo-selector option {
+    background-color: var(--bg-card) !important;
+    color: var(--text-main) !important;
+    padding: 10px !important;
 }
 /* =========================================
    FIX: VISIBILIDAD EN PEDIDOS Y KARDEX (HISTORIAL)
